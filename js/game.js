@@ -10,7 +10,7 @@ let R = null;
 G.mode='title'; G.time=0; G.hitstop=0; G.slow=0;
 G.enemies=[]; G.proj=[]; G.fx=[]; G.tele=[]; G.nums=[]; G.picks=[]; G.pillars=[]; G.ghosts=[];
 G.cam={yaw:Math.PI,pitch:.3,dist:5.4,tx:0,ty:1.5,tz:0,shake:0,cine:0,pos:[0,3,6]};
-G.settings={sens:1,invertY:false,nums:true,shake:true,quality:1};
+G.settings={sens:1,invertY:false,nums:true,shake:true,quality:1,autoRes:true,resMax:1};
 G.stats={kills:0,maxCombo:0,start:0};
 G.flags={};
 const C_ELF=hex(0x3dffb0), C_CY=hex(0x3fa9ff), C_RED=hex(0xff3b4e), C_HARM=[.95,.9,1], C_DEL=hex(0x7a6bff), C_WARN=[1,.25,.3];
@@ -848,6 +848,7 @@ function loop(now){
     }
     updateFx(dt);
   } else { G.time+=rdt*.3; }
+  autoRes(rdt);
   R.resize();
   if(G.mode==='title'){ titleCam(rdt); } else updateCamera(dt,rdt);
   render(dt);
@@ -855,11 +856,19 @@ function loop(now){
   XF.Input.endFrame();
   requestAnimationFrame(loop);
 }
+let frAvg=16,frT=0;
+function autoRes(rdt){
+  if(!G.settings.autoRes||G.mode!=='play'){ return; }
+  frAvg=frAvg*.95+rdt*1000*.05; frT+=rdt; if(frT<1.2)return; frT=0;
+  if(frAvg>24&&R.scale>.5){ R.scale=Math.max(.5,R.scale-.1); }
+  else if(frAvg<15&&R.scale<G.settings.resMax){ R.scale=Math.min(G.settings.resMax,R.scale+.05); }
+}
 function titleCam(dt){ const a=G.time*.6; R.setCamera([Math.sin(a)*1.4+.8,1.7,-4.3],[.8,1.25,.8],52*Math.PI/180);
   P.fog=0; }
 
 G.boot=function(canvas){
   R=G.R=new XF.Renderer(canvas); W.build();
+  if(XF.Input.touch){ R.maxDpr=1.5; R.scale=.8; XF.Input._tuned=true; }
   G.rigs.synthe=M.synthe(); G.rigs.zero=M.zero(); resetPlayer('synthe'); P.x=0;P.z=-2;
   setupStage();
   requestAnimationFrame(t=>{last=t;loop(t);});

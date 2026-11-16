@@ -13,7 +13,10 @@ U.init=function(){
   ctx2=$('#fx2d').getContext('2d'); mini=$('#mini').getContext('2d'); big=$('#bigmap').getContext('2d');
   $$('.v').forEach(e=>e.textContent=XF.VERSION); $('#ver').textContent=XF.VERSION;
   $$('#select .card').forEach(c=>{ c.querySelector('p').textContent=XF.CHARS[c.dataset.char].desc; c.onclick=()=>{ A.init(); A.play('ui'); show('#select',false); $('#hud').classList.remove('hidden'); G.start(c.dataset.char); }; });
-  $('#btn-start').onclick=()=>{ A.init(); A.play('ui'); show('#title',false); show('#select',true); };
+  $('#btn-start').onclick=()=>{ A.init(); A.play('ui'); goFull(); show('#title',false); show('#select',true); document.body.classList.add('ingame'); };
+  $('#btn-fs').onclick=()=>goFull();
+  $('#map').addEventListener('click',()=>{ if(mapOpen) toggleMap(); });
+  addEventListener('orientationchange',()=>setTimeout(()=>XF.Input.clear(),200));
   $('#select .back').onclick=()=>{ show('#select',false); show('#title',true); };
   $('#btn-controls').onclick=()=>{ A.init(); openPause('ctl',true); };
   $('#btn-lore').onclick=()=>{ A.init(); openPause('lore',true); };
@@ -27,11 +30,18 @@ U.init=function(){
   $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
   // 설정
   const bindR=(id,fn)=>{ const el=$(id),out=el.nextElementSibling; const f=()=>{ out.textContent=(+el.value).toFixed(2).replace(/\.?0+$/,''); fn(+el.value); }; el.oninput=f; f(); };
-  bindR('#o-sens',v=>G.settings.sens=v); bindR('#o-vol',v=>A.setVol(v)); bindR('#o-res',v=>{ if(G.R)G.R.scale=v; });
+  bindR('#o-sens',v=>G.settings.sens=v); bindR('#o-vol',v=>A.setVol(v)); bindR('#o-res',v=>{ G.settings.resMax=v; if(G.R)G.R.scale=Math.min(G.R.scale,v); if(G.R&&!G.settings.autoRes)G.R.scale=v; });
+  bindR('#o-tsens',v=>XF.Input.touchSens=v); $('#o-auto').onchange=e=>G.settings.autoRes=e.target.checked;
   $('#o-inv').onchange=e=>G.settings.invertY=e.target.checked; $('#o-num').onchange=e=>G.settings.nums=e.target.checked; $('#o-shake').onchange=e=>G.settings.shake=e.target.checked;
   buildTabs();
 };
-function toTitle(){ $$('.screen').forEach(s=>s.classList.remove('show')); show('#title',true); $('#hud').classList.add('hidden'); G.mode='title'; G.uiBlock=false; U.bossBar(null); A.bossMode(false); if(document.exitPointerLock)document.exitPointerLock(); }
+function toTitle(){ document.body.classList.remove('ingame'); $$('.screen').forEach(s=>s.classList.remove('show')); show('#title',true); $('#hud').classList.add('hidden'); G.mode='title'; G.uiBlock=false; U.bossBar(null); A.bossMode(false); if(document.exitPointerLock)document.exitPointerLock(); }
+function goFull(){
+  if(!XF.Input.touch)return;
+  const el=document.documentElement, rq=el.requestFullscreen||el.webkitRequestFullscreen;
+  try{ const p=rq&&rq.call(el,{navigationUI:'hide'}); const lock=()=>{ try{ screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} };
+    if(p&&p.then) p.then(lock).catch(()=>{}); else lock(); }catch(e){}
+}
 function tab(t){ $$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t)); $$('.tab').forEach(e=>e.classList.toggle('on',e.id==='tab-'+t)); }
 function openPause(t,fromTitle){ tab(t||'set'); show('#pause',true); $('#btn-resume').textContent=fromTitle?'닫기':'계속하기';
   $('#btn-restart').style.display=fromTitle?'none':''; $('#btn-title').style.display=fromTitle?'none':''; U.pauseFromTitle=fromTitle; }
@@ -101,6 +111,7 @@ U.frame=function(dt){
   if(c.width!==Math.floor(w*dpr)){ c.width=Math.floor(w*dpr); c.height=Math.floor(h*dpr); }
   ctx2.setTransform(dpr,0,0,dpr,0,0); ctx2.clearRect(0,0,w,h);
   if(G.mode==='title')return;
+  if(XF.Input.touch&&innerHeight>innerWidth&&G.mode==='play'&&!G.uiBlock){ U.pause(true); }
   const P=G.player, st=G.stateOf();
   document.body.classList.toggle('cine',G.cam.cine>0);
   glitchT-=dt; $('#glitch').classList.toggle('on',glitchT>0||P.fog>.9&&Math.random()<.04);

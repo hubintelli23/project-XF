@@ -94,7 +94,7 @@ class Renderer{
     buildPrimitives(this);
   }
   resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,2)*this.scale;
+    const dpr=Math.min(window.devicePixelRatio||1,this.maxDpr||2)*this.scale;
     const w=Math.floor(this.canvas.clientWidth*dpr),h=Math.floor(this.canvas.clientHeight*dpr);
     if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
     this.gl.viewport(0,0,w,h);

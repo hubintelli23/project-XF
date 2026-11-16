@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>XF 신스에테르0 — 테스트 빌드 v0.1.0</title>
-<link rel="stylesheet" href="css/style.css?v=0.1.0">
+<title>XF 신스에테르0 — 테스트 빌드 v0.1.1</title>
+<link rel="stylesheet" href="css/style.css?v=0.1.1">
 </head>
 <body>
-<!-- XF 『신스에테르0』 테스트 빌드 v0.1.0 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
+<!-- XF 『신스에테르0』 테스트 빌드 v0.1.1 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
 <canvas id="game"></canvas>
 <canvas id="fx2d"></canvas>
 <div id="letterbox"><i></i><i></i></div>
@@ -81,9 +81,10 @@
       <button id="btn-start" class="primary">각성 시작</button>
       <button id="btn-controls">조작법</button>
       <button id="btn-lore">세계관 기록</button>
+      <button id="btn-fs" class="only-touch">전체화면 전환</button>
     </div>
   </div>
-  <div class="ver">TEST BUILD <b id="ver">v0.1.0</b> · 제1지역 「잊혀진 실험동」</div>
+  <div class="ver">TEST BUILD <b id="ver">v0.1.1</b> · 제1지역 「잊혀진 실험동」</div>
 </div>
 
 <div id="select" class="screen">
@@ -106,6 +107,8 @@
       <label class="chk"><input type="checkbox" id="o-inv"> 상하 시점 반전</label>
       <label class="chk"><input type="checkbox" id="o-num" checked> 피해 숫자 표시</label>
       <label class="chk"><input type="checkbox" id="o-shake" checked> 화면 흔들림</label>
+      <label class="chk"><input type="checkbox" id="o-auto" checked> 자동 해상도 조절 (휴대폰 권장)</label>
+      <label>터치 시점 감도 <input type="range" id="o-tsens" min="0.4" max="3" step="0.1" value="1.4"><output></output></label>
     </div>
     <div class="tab" id="tab-ctl"></div>
     <div class="tab" id="tab-sys"></div>
@@ -128,16 +131,17 @@
 <div id="death" class="screen"><div class="panel center"><h2 class="red">시스템 정지</h2><p>의체 기능이 정지되었습니다. 마지막 체크포인트에서 재기동합니다.</p><div class="row"><button id="btn-respawn" class="primary">재기동</button><button class="to-title">타이틀로</button></div></div></div>
 <div id="clear" class="screen"><div class="panel center"><div class="code">REGION 01 CLEAR</div><h2>잊혀진 실험동 — 기억 복원</h2><div id="clear-stats"></div><p class="dim">테스트 빌드는 여기까지입니다. 다음 지역(원소 도깨비 영역)은 이후 버전에서 이어집니다.</p><div class="row"><button id="btn-free" class="primary">자유 탐색 계속</button><button class="to-title">타이틀로</button></div></div></div>
 <div id="map" class="screen"><canvas id="bigmap"></canvas><div class="map-legend">● 나 &nbsp; <i class="r">●</i> 레비너스 &nbsp; <i class="b">◆</i> 델리리움 기둥 &nbsp; <i class="g">◎</i> 정비실 &nbsp; <i class="w">◇</i> 기억 조각 &nbsp; · M 닫기</div></div>
+<div id="rotate"><div class="rot-ic">⟳</div><b>휴대폰을 가로로 돌려주세요</b><p>신스에테르0은 가로 화면에서 플레이합니다.</p></div>
 <div id="err" class="hidden"></div>
 
-<script src="js/data.js?v=0.1.0"></script>
-<script src="js/engine.js?v=0.1.0"></script>
-<script src="js/audio.js?v=0.1.0"></script>
-<script src="js/actors.js?v=0.1.0"></script>
-<script src="js/world.js?v=0.1.0"></script>
-<script src="js/input.js?v=0.1.0"></script>
-<script src="js/game.js?v=0.1.0"></script>
-<script src="js/ui.js?v=0.1.0"></script>
-<script src="js/main.js?v=0.1.0"></script>
+<script src="js/data.js?v=0.1.1"></script>
+<script src="js/engine.js?v=0.1.1"></script>
+<script src="js/audio.js?v=0.1.1"></script>
+<script src="js/actors.js?v=0.1.1"></script>
+<script src="js/world.js?v=0.1.1"></script>
+<script src="js/input.js?v=0.1.1"></script>
+<script src="js/game.js?v=0.1.1"></script>
+<script src="js/ui.js?v=0.1.1"></script>
+<script src="js/main.js?v=0.1.1"></script>
 </body>
 </html>

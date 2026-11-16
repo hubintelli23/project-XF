@@ -56,7 +56,7 @@ I.bind=function(canvas){
     for(const t of e.changedTouches){
       if(t.identifier===joy.id){ let dx=t.clientX-joy.ox,dy=t.clientY-joy.oy; const d=Math.hypot(dx,dy),m=55; if(d>m){dx*=m/d;dy*=m/d;}
         joy.x=dx/m; joy.y=-dy/m; knob.style.transform=`translate(${dx}px,${dy}px)`; }
-      if(t.identifier===lookTouch.id){ lookX+=(t.clientX-lookTouch.x)*1.5; lookY+=(t.clientY-lookTouch.y)*1.5; lookTouch.x=t.clientX; lookTouch.y=t.clientY; }
+      if(t.identifier===lookTouch.id){ const ts=I.touchSens||1.4; lookX+=(t.clientX-lookTouch.x)*ts; lookY+=(t.clientY-lookTouch.y)*ts; lookTouch.x=t.clientX; lookTouch.y=t.clientY; }
     } e.preventDefault(); },{passive:false});
   const end=e=>{ for(const t of e.changedTouches){ if(t.identifier===joy.id){ joy.id=null; joy.x=joy.y=0; stick.classList.remove('on'); } if(t.identifier===lookTouch.id) lookTouch.id=null; } };
   zone.addEventListener('touchend',end); zone.addEventListener('touchcancel',end);
@@ -70,5 +70,6 @@ I.bind=function(canvas){
     b.addEventListener('mousedown',e=>{ if(I.touch){e.preventDefault();} });
   });
 };
-I.enableTouch=function(on){ I.touch=on; document.body.classList.toggle('touch',on); };
+I.enableTouch=function(on){ I.touch=on; document.body.classList.toggle('touch',on);
+  if(on&&XF.Game.R&&!I._tuned){ I._tuned=true; XF.Game.R.maxDpr=1.5; XF.Game.R.scale=.8; } };
 })();
