@@ -137,6 +137,8 @@ W.draw=function(R,t,player){
 
 /* 원(x,z,r)을 걸을 수 있는 영역 안으로 & 장애물 밖으로 */
 W.collide=function(p,r,ignoreGate){
+  if(!isFinite(p.x)||!isFinite(p.z)){ p.x=isFinite(p.px)?p.px:0; p.z=isFinite(p.pz)?p.pz:-5; p.vx=0; p.vz=0; }
+  if(p.y!==undefined&&!isFinite(p.y)){ p.y=0; p.vy=0; }
   // 1) 영역
   let inside=false;
   for(const q of W.rects){ if(p.x>=q.x0+r&&p.x<=q.x1-r&&p.z>=q.z0+r&&p.z<=q.z1-r){inside=true;break;} }
@@ -152,7 +154,9 @@ W.collide=function(p,r,ignoreGate){
         const m=[p.x-o.x0,o.x1-p.x,p.z-o.z0,o.z1-p.z];const i=m.indexOf(Math.min(...m));
         if(i===0)p.x=o.x0-r;else if(i===1)p.x=o.x1+r;else if(i===2)p.z=o.z0-r;else p.z=o.z1+r; } }
   }
+  p.px=p.x; p.pz=p.z;
   // 3) 게이트
   if(!ignoreGate && !W.gateOpen && p.z<W.gateZ+.6+r && p.z>W.gateZ-1.5) p.z=W.gateZ+.6+r;
+  p.px=p.x; p.pz=p.z;
 };
 })();

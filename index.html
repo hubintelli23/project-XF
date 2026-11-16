@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>XF 신스에테르0 — 테스트 빌드 v0.1.1</title>
-<link rel="stylesheet" href="css/style.css?v=0.1.1">
+<title>XF 신스에테르0 — 테스트 빌드 v0.2.0</title>
+<link rel="stylesheet" href="css/style.css?v=0.2.0">
 </head>
 <body>
-<!-- XF 『신스에테르0』 테스트 빌드 v0.1.1 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
+<!-- XF 『신스에테르0』 테스트 빌드 v0.2.0 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
 <canvas id="game"></canvas>
 <canvas id="fx2d"></canvas>
 <div id="letterbox"><i></i><i></i></div>
@@ -36,15 +36,15 @@
     <div id="state-name"><b></b><span></span></div>
     <div id="sync">
       <div class="side l">ARCANA</div><div class="side r">OVERLORD</div>
-      <div id="sync-track"><div id="sync-fill-l"></div><div id="sync-fill-r"></div><div id="sync-harm"></div><div id="sync-ghost"></div><div id="sync-mark"></div></div>
+      <div id="sync-track"><div id="sync-fill-l"></div><div id="sync-fill-r"></div><div id="sync-harm"></div><div id="sync-ghost"></div><div id="sync-ghost2"></div><div id="sync-mark"></div></div>
       <div id="sync-val">50 : 50</div>
     </div>
   </div>
   <div id="skills">
     <div class="sk" id="sk-dodge"><em>Shift</em><div class="ic">↺</div><span>회피</span><i class="cd"></i></div>
     <div class="sk" id="sk-dash"><em>우클릭</em><div class="ic">⟫</div><span>위상 변위</span><i class="cd"></i></div>
-    <div class="sk big" id="sk-q"><em>Q</em><div class="ic">✦</div><span></span><i class="cd"></i><u></u></div>
-    <div class="sk big" id="sk-e"><em>E</em><div class="ic">⌁</div><span></span><i class="cd"></i><u></u></div>
+    <div class="sk big" id="sk-q"><em>Q</em><div class="ic">✦</div><span></span><i class="cd"></i><u></u><b class="hold"></b></div>
+    <div class="sk big" id="sk-e"><em>E</em><div class="ic">⌁</div><span></span><i class="cd"></i><u></u><b class="hold"></b></div>
     <div class="sk ult" id="sk-r"><em>R</em><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="bg"/><circle cx="32" cy="32" r="28" class="fg" id="ult-ring"/></svg><div class="ic">✧</div><span></span></div>
   </div>
   <div id="prompt" class="hidden"><kbd>F</kbd><span></span></div>
@@ -84,17 +84,29 @@
       <button id="btn-fs" class="only-touch">전체화면 전환</button>
     </div>
   </div>
-  <div class="ver">TEST BUILD <b id="ver">v0.1.1</b> · 제1지역 「잊혀진 실험동」</div>
+  <div class="ver">TEST BUILD <b id="ver">v0.2.0</b> · 제1지역 「잊혀진 실험동」</div>
 </div>
 
 <div id="select" class="screen">
-  <h2>싱크로 피험체 선택</h2>
-  <p class="sub">게임 중 <kbd>Tab</kbd>으로 언제든 쌍둥이를 전환할 수 있습니다. 싱크로 게이지는 공유됩니다.</p>
+  <h2>바디 선택</h2>
+  <p class="sub">여성 · 남성 바디만 정합니다. 진영은 바디와 상관없이 다음 화면의 <b>스킬 구성</b>으로 정해집니다. (게임 중 <kbd>Tab</kbd>으로 바디 전환)</p>
   <div class="cards">
-    <button class="card elf" data-char="synthe"><div class="tag">ARCANA · 엘프 기반</div><h3>신스 <small>SYNTHE · 여성</small></h3><p></p><div class="lean">시작 게이지 → 아스트랄 버스트</div></button>
-    <button class="card cyber" data-char="zero"><div class="tag">OVERLORD · 사이보그 기반</div><h3>제로 <small>ZERO · 남성</small></h3><p></p><div class="lean">시작 게이지 → 네오 오버라이드</div></button>
+    <button class="card elf" data-char="synthe"><div class="tag">FEMALE BODY · 여성</div><h3>신스 <small>SYNTHE · ETHER</small></h3><p></p></button>
+    <button class="card cyber" data-char="zero"><div class="tag">MALE BODY · 남성</div><h3>제로 <small>ZERO</small></h3><p></p></button>
   </div>
   <button class="back">← 돌아가기</button>
+</div>
+
+<div id="loadout" class="screen">
+  <div class="panel wide">
+    <h2>스킬 구성 <small>엘프 스킬 2개 · 사이보그 스킬 2개 · 하나씩 — 자유롭게</small></h2>
+    <div class="presets" id="lo-presets"></div>
+    <div class="lo-row"><div class="lo-k">Q</div><div class="lo-opts" id="lo-q"></div></div>
+    <div class="lo-row"><div class="lo-k">E</div><div class="lo-opts" id="lo-e"></div></div>
+    <div class="lo-row"><div class="lo-k">R</div><div class="lo-opts" id="lo-r"></div></div>
+    <p class="dim" id="lo-note"></p>
+    <div class="row"><button id="btn-lo-ok" class="primary">각성 시작</button><button id="btn-lo-back">← 돌아가기</button></div>
+  </div>
 </div>
 
 <div id="pause" class="screen">
@@ -123,7 +135,7 @@
     <h2>정비실 — 조력자 정비 <small>HP 완전 회복 · 체크포인트 저장</small></h2>
     <div class="ore-have">보유 광석 <b id="st-ore">0</b></div>
     <div class="helpers" id="helpers"></div>
-    <div class="row"><button id="btn-st-close" class="primary">정비 완료</button></div>
+    <div class="row"><button id="btn-st-close" class="primary">정비 완료</button><button id="btn-st-load">스킬 구성 변경</button></div>
   </div>
 </div>
 
@@ -134,14 +146,14 @@
 <div id="rotate"><div class="rot-ic">⟳</div><b>휴대폰을 가로로 돌려주세요</b><p>신스에테르0은 가로 화면에서 플레이합니다.</p></div>
 <div id="err" class="hidden"></div>
 
-<script src="js/data.js?v=0.1.1"></script>
-<script src="js/engine.js?v=0.1.1"></script>
-<script src="js/audio.js?v=0.1.1"></script>
-<script src="js/actors.js?v=0.1.1"></script>
-<script src="js/world.js?v=0.1.1"></script>
-<script src="js/input.js?v=0.1.1"></script>
-<script src="js/game.js?v=0.1.1"></script>
-<script src="js/ui.js?v=0.1.1"></script>
-<script src="js/main.js?v=0.1.1"></script>
+<script src="js/data.js?v=0.2.0"></script>
+<script src="js/engine.js?v=0.2.0"></script>
+<script src="js/audio.js?v=0.2.0"></script>
+<script src="js/actors.js?v=0.2.0"></script>
+<script src="js/world.js?v=0.2.0"></script>
+<script src="js/input.js?v=0.2.0"></script>
+<script src="js/game.js?v=0.2.0"></script>
+<script src="js/ui.js?v=0.2.0"></script>
+<script src="js/main.js?v=0.2.0"></script>
 </body>
 </html>

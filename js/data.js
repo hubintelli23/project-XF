@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const XF = window.XF = window.XF || {};
-XF.VERSION = 'v0.1.1';
+XF.VERSION = 'v0.2.0';
 XF.TITLE = '신스에테르0';
 
 /* 싱크로 게이지: 0 = 엘프(아르카나) 극단, 100 = 사이보그(오버로드) 극단 */
@@ -10,19 +10,19 @@ XF.SYNC = {
   HARM_MIN: 47, HARM_MAX: 53,  // 이 구간에 들어오면 하모닉 싱크로 발동
   HARM_TIME: 8,                // 하모닉 지속 시간(초)
   SKILL_SHIFT: 14,             // 기본 Q/E 스킬 1회당 이동량
-  HIT_DRIFT: 1.1,              // 기본 공격 적중 시 캐릭터 성향 쪽으로 이동
+  RECOVER: 1.2,                // 초당 중앙(조화) 쪽으로 자연 회복 — 하모닉 구간 직전까지
   OVERLOAD_RESET: 22           // 과부하 후 복귀 위치(끝에서 떨어진 거리)
 };
 
 XF.CHARS = {
   synthe: {
-    id:'synthe', name:'신스', en:'SYNTHE', gender:'여성', lean:-1, startSync:38,
-    desc:'에테르 코어의 정령 쪽 반쪽. 엘프 기반 — 정령 마법과 빛의 원소, 세계의 「정화」를 바란다.',
+    id:'synthe', name:'신스', en:'SYNTHE · ETHER', gender:'여성',
+    desc:'여성 바디. 아스트라 오리진의 에테르 코어에서 분원된 쌍둥이 피험체 중 하나 — 가볍고 날렵한 체형.',
     color:0x3dffb0
   },
   zero: {
-    id:'zero', name:'제로', en:'ZERO', gender:'남성', lean:1, startSync:62,
-    desc:'에테르 코어의 기계 쪽 반쪽. 사이보그 기반 — 나노 기술과 에너지 무기, 세계의 「재건」을 바란다.',
+    id:'zero', name:'제로', en:'ZERO', gender:'남성',
+    desc:'남성 바디. 아스트라 오리진의 에테르 코어에서 분원된 쌍둥이 피험체 중 하나 — 단단하고 묵직한 체형.',
     color:0x3fa9ff
   }
 };
@@ -42,11 +42,13 @@ XF.MOVES = {
 };
 
 XF.SKILLS = {
-  // 기본 스킬 (게이지를 움직인다)
+  // 장착 스킬 (Q·E 칸에 자유 장착 · 게이지를 움직인다)
+  barrier:{key:'', name:'아르카나 룬 결계', side:'elf', cd:12, dmg:16, shift:-1, desc:'룬 마법진 설치 — 적 접근 차단 · 적 투사체 반사'},
+  pile:   {key:'', name:'열가속 파일 벙커', side:'cyber', cd:8, dmg:120, shift:+1, desc:'전진 쇄도 후 충격 파일 벙커 내리꽂기 · 가드 불가'},
   lance:  {key:'Q', name:'천천(天穿)의 마력창', side:'elf',   cd:6,  dmg:38, shift:-1, desc:'아스트랄 마력창 3자루 연속 사격 · 게이지 엘프 쪽 이동'},
   gale:   {key:'E', name:'나노 버스터 게일',    side:'cyber', cd:6,  dmg:95, shift:+1, desc:'레일건 플라즈마 관통탄 · 게이지 사이보그 쪽 이동'},
   // 상태 전용 스킬
-  orbit:  {key:'Q', name:'아르카나 룬 궤도',     side:'elf',   cd:9,  dmg:9,  desc:'룬 4개 회전 · 마력 저항 30%↓ · 재시전 시 연쇄 폭발'},
+  orbit:  {key:'Q', name:'아르카나 룬 궤도',     side:'elf',   cd:12,  dmg:9,  desc:'룬 4개 회전 · 마력 저항 30%↓ · 재시전 시 연쇄 폭발'},
   rush:   {key:'E', name:'나노 프레임 쇄도포',   side:'cyber', cd:9,  dmg:60, desc:'관통 돌진 + 플라즈마 레이저 · 3초 가드 불가'},
   harmo:  {key:'Q/E', name:'교차 영창: 하모닉 슬래시', side:'harm', cd:1.6, dmg:70, desc:'쌍둥이 환영 교차 베기 · 전 스킬 쿨타임 -2초'},
   // 궁극기
@@ -55,6 +57,13 @@ XF.SKILLS = {
   origin: {key:'R', name:'아스트라-0: 진명 해방',    side:'harm', dmg:900, desc:'시공간 정지 · 융합 난무 · 진짜 피해'}
 };
 
+XF.LOAD_SKILLS = ['barrier','lance','gale','pile'];   // 엘프 2 · 사이보그 2
+XF.LOAD_ULTS = ['nova','annih'];
+XF.PRESETS = [
+  {name:'엘프 특화', q:'barrier', e:'lance', r:'nova'},
+  {name:'사이보그 특화', q:'gale', e:'pile', r:'annih'},
+  {name:'혼합 (엘프+사이보그)', q:'lance', e:'gale', r:'nova'}
+];
 XF.STATES = {
   astral:{name:'아스트랄 버스트', sub:'엘프 우세', color:'#3dffb0', desc:'엘프 스킬 피해 +40% · 정화 파동 · 상태이상 해제'},
   neo:   {name:'네오 오버라이드', sub:'사이보그 우세', color:'#3fa9ff', desc:'사이보그 스킬 피해 +40% · 방어 관통 · 슈퍼아머'},

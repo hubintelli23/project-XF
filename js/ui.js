@@ -12,7 +12,11 @@ U.init=function(){
   G.ui=U;
   ctx2=$('#fx2d').getContext('2d'); mini=$('#mini').getContext('2d'); big=$('#bigmap').getContext('2d');
   $$('.v').forEach(e=>e.textContent=XF.VERSION); $('#ver').textContent=XF.VERSION;
-  $$('#select .card').forEach(c=>{ c.querySelector('p').textContent=XF.CHARS[c.dataset.char].desc; c.onclick=()=>{ A.init(); A.play('ui'); show('#select',false); $('#hud').classList.remove('hidden'); G.start(c.dataset.char); }; });
+  $$('#select .card').forEach(c=>{ c.querySelector('p').textContent=XF.CHARS[c.dataset.char].desc; c.onclick=()=>{ A.init(); A.play('ui'); U.body=c.dataset.char; show('#select',false); openLoadout('start'); }; });
+  $('#btn-lo-ok').onclick=()=>{ A.play('ui'); G.setLoadout(lo); show('#loadout',false);
+    if(loMode==='start'){ $('#hud').classList.remove('hidden'); G.start(U.body||'synthe'); } else { buildStation(); show('#station',true); } };
+  $('#btn-lo-back').onclick=()=>{ show('#loadout',false); if(loMode==='start') show('#select',true); else show('#station',true); };
+  $('#btn-st-load').onclick=()=>{ show('#station',false); openLoadout('station'); };
   $('#btn-start').onclick=()=>{ A.init(); A.play('ui'); goFull(); show('#title',false); show('#select',true); document.body.classList.add('ingame'); };
   $('#btn-fs').onclick=()=>goFull();
   $('#map').addEventListener('click',()=>{ if(mapOpen) toggleMap(); });
@@ -59,20 +63,38 @@ function buildTabs(){
   <tr><td>Space + 좌클릭 + Ctrl</td><td>점프 강공격 — ${mv.jheavy.name} (공중에서 0.5초 홀딩도 가능)</td></tr>
   <tr><td>Shift</td><td>회피 (무적 · 타이밍이 맞으면 <b>완벽 회피</b> → 감속 + 게이지 균형 보정)</td></tr>
   <tr><td>우클릭</td><td>대쉬 — ${mv.dash.name} (무적 관통 · 스턴)</td></tr>
-  <tr><td>Q · E</td><td>스킬 (싱크로 상태에 따라 변화)</td></tr><tr><td>R</td><td>궁극기 (상태별 3종)</td></tr>
-  <tr><td>Tab</td><td>신스 ↔ 제로 전환 (근처 적에게 교대 일격)</td></tr>
+  <tr><td>Q · E</td><td>장착 스킬 (스킬 구성에서 엘프·사이보그 스킬 자유 장착) · <b>0.5초 홀딩</b> = 상태 전용 스킬</td></tr><tr><td>R</td><td>장착 궁극기 (엘프 / 사이보그 선택) · 하모닉 상태에서는 진명 해방</td></tr>
+  <tr><td>Tab</td><td>바디 전환 신스 ↔ 제로 (진영·스킬은 그대로)</td></tr>
   <tr><td>F</td><td>상호작용 — 기둥 정화/해킹, 조력자 정비, 기억 복원</td></tr>
   <tr><td>M · Esc</td><td>지도 · 설정</td></tr></table>
   <p class="dim">휴대폰: 왼쪽 드래그 이동 · 오른쪽 드래그 시점 · 공격 버튼 홀딩 = 강공격(공중이면 점프 강공격)</p>`;
-  $('#tab-sys').innerHTML=`<p>싱크로 게이지는 기계 에너지와 마력의 조화도입니다. 왼쪽 끝은 엘프(아르카나), 오른쪽 끝은 사이보그(오버로드). <b>끝에 닿으면 과부하</b> — 피해와 1초 경직.</p>
+  $('#tab-sys').innerHTML=`<p>진영은 바디(신스·제로)가 아니라 <b>장착한 스킬</b>로 정해집니다. 스킬 구성에서 Q·E 칸에 엘프 스킬(${S.barrier.name}, ${S.lance.name})과 사이보그 스킬(${S.gale.name}, ${S.pile.name})을 자유롭게 넣고(엘프 2 · 사이보그 2 · 하나씩), 궁극기도 엘프(${S.nova.name}) / 사이보그(${S.annih.name}) 중 고릅니다. 정비실에서 언제든 바꿀 수 있습니다.</p>
+  <p>엘프 스킬은 싱크로 게이지를 왼쪽(아르카나)으로, 사이보그 스킬은 오른쪽(오버로드)으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다. 게이지는 스스로 천천히 중앙 쪽으로 돌아오며, 끝에 닿으면 <b>과부하</b>(피해 + 1초 경직).</p>
   <table>
-  <tr><td class="s-elf">아스트랄 버스트</td><td>${XF.STATES.astral.desc}<br>Q → <b>${S.orbit.name}</b> (${S.orbit.desc}) · E → ${S.gale.name}<br>R → <b>${S.nova.name}</b></td></tr>
-  <tr><td class="s-cy">네오 오버라이드</td><td>${XF.STATES.neo.desc}<br>Q → ${S.lance.name} · E → <b>${S.rush.name}</b> (${S.rush.desc})<br>R → <b>${S.annih.name}</b></td></tr>
-  <tr><td class="s-harm">하모닉 싱크로</td><td>게이지가 47~53 구간에 들어오면 ${XF.SYNC.HARM_TIME}초간 발동. ${XF.STATES.harm.desc}<br>Q/E → <b>${S.harmo.name}</b> (${S.harmo.desc})<br>R → <b>${S.origin.name}</b><br>종료 후 10초간 재발동 불가.</td></tr>
-  </table>
-  <p class="dim">기본 Q(${S.lance.name})는 게이지를 엘프 쪽으로, 기본 E(${S.gale.name})는 사이보그 쪽으로 ${XF.SYNC.SKILL_SHIFT}씩 이동시킵니다. 기본 공격은 현재 캐릭터의 성향 쪽으로 조금씩 끌어당깁니다. 델리리움 기둥 근처와 짙은 안개 속에서는 균형이 흔들립니다.</p>`;
+  <tr><td class="s-elf">아스트랄 버스트</td><td>${XF.STATES.astral.desc}<br>엘프 칸 홀딩 → <b>${S.orbit.name}</b> (${S.orbit.desc})</td></tr>
+  <tr><td class="s-cy">네오 오버라이드</td><td>${XF.STATES.neo.desc}<br>사이보그 칸 홀딩 → <b>${S.rush.name}</b> (${S.rush.desc})</td></tr>
+  <tr><td class="s-harm">하모닉 싱크로</td><td>스킬로 게이지를 47~53에 정확히 맞추면 ${XF.SYNC.HARM_TIME}초간 발동. 게이지 소모 없음 · 쿨타임 절반 · 진짜 피해<br>아무 칸 홀딩 → <b>${S.harmo.name}</b> · R → <b>${S.origin.name}</b><br>종료 후 10초간 재발동 불가.</td></tr>
+  </table>`;
   $('#tab-lore').innerHTML=`<h4>연대기 — Chronology of Astra-XF</h4><table>${XF.LORE.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td></tr>`).join('')}</table>
   <h4>세력 구도</h4><table>${XF.FACTIONS.map(f=>`<tr><td>${f[0]}</td><td>수장 ${f[1]} · ${f[2]}<br>${f[3]}</td></tr>`).join('')}</table>`;
+}
+let lo=null, loMode='start';
+function openLoadout(mode){
+  loMode=mode; lo=Object.assign({},G.loadout); renderLoadout(); show('#loadout',true);
+  $('#btn-lo-ok').textContent=mode==='start'?'각성 시작':'구성 적용';
+}
+function renderLoadout(){
+  const SK=XF.SKILLS;
+  const opt=(id,slot)=>{ const s=SK[id]; const dis=(slot==='q'&&lo.e===id)||(slot==='e'&&lo.q===id);
+    return `<button class="lo-opt ${s.side} ${lo[slot]===id?'on':''}" data-slot="${slot}" data-id="${id}" ${dis?'disabled':''}><span class="sd">${s.side==='elf'?'ELF · 아르카나':'CYBER · 오버로드'}</span><b>${s.name}</b><small>${s.desc}</small></button>`; };
+  $('#lo-q').innerHTML=XF.LOAD_SKILLS.map(id=>opt(id,'q')).join('');
+  $('#lo-e').innerHTML=XF.LOAD_SKILLS.map(id=>opt(id,'e')).join('');
+  $('#lo-r').innerHTML=XF.LOAD_ULTS.map(id=>opt(id,'r')).join('');
+  $('#lo-presets').innerHTML=XF.PRESETS.map((p,i)=>`<button data-p="${i}">${p.name}</button>`).join('');
+  const n=[lo.q,lo.e].filter(k=>SK[k].side==='elf').length;
+  $('#lo-note').innerHTML=`현재 구성: <b>${n===2?'엘프 2':n===0?'사이보그 2':'엘프 1 · 사이보그 1'}</b> — 엘프 스킬은 게이지를 아르카나 쪽으로, 사이보그 스킬은 오버로드 쪽으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다.<br>Q/E를 <b>0.5초 홀딩</b>하면 현재 상태 전용 스킬: 아스트랄(엘프 칸) ${SK.orbit.name} · 네오(사이보그 칸) ${SK.rush.name} · 하모닉(아무 칸) ${SK.harmo.name}. 하모닉 상태의 R은 ${SK.origin.name}.`;
+  $$('#loadout .lo-opt').forEach(b=>b.onclick=()=>{ lo[b.dataset.slot]=b.dataset.id; A.play('ui'); renderLoadout(); });
+  $$('#lo-presets button').forEach(b=>b.onclick=()=>{ const p=XF.PRESETS[+b.dataset.p]; lo={q:p.q,e:p.e,r:p.r}; A.play('ui'); renderLoadout(); });
 }
 function buildStation(){
   const P=G.player; $('#st-ore').textContent=P.ore;
@@ -117,7 +139,7 @@ U.frame=function(dt){
   glitchT-=dt; $('#glitch').classList.toggle('on',glitchT>0||P.fog>.9&&Math.random()<.04);
   hurtT-=dt; const v=$('#vignette'); v.classList.toggle('hit',hurtT>0); v.classList.toggle('poison',P.poison>0&&hurtT<=0);
   // 좌상단
-  const ch=XF.CHARS[P.char]; $('#who-name').textContent=ch.name; $('#who-en').textContent=ch.en; $('#who-name').style.color='#'+ch.color.toString(16).padStart(6,'0');
+  const ch=XF.CHARS[P.char]; $('#who-name').textContent=ch.name; $('#who-en').textContent=ch.en+' · '+ch.gender; $('#who-name').style.color='#'+ch.color.toString(16).padStart(6,'0');
   $('#hp i').style.transform=`scaleX(${P.hp/P.hpMax})`; $('#hp b').style.transform=`scaleX(${P.hp/P.hpMax})`; $('#hp-t').textContent=`${Math.ceil(P.hp)} / ${P.hpMax}`;
   let stt=''; if(P.poison>0) stt+=`<span style="color:#9a8cff">델리리움 중독 ${P.poison.toFixed(0)}s</span>`; if(P.fog>.85) stt+=`<span style="color:#7fa0ff">시스템 오류</span>`;
   if(P.orbitT>0) stt+=`<span style="color:var(--elf)">룬 궤도 ${P.orbitT.toFixed(0)}s</span>`; if(P.stunT>0) stt+=`<span style="color:#ff6b7d">과부하 경직</span>`;
@@ -141,16 +163,15 @@ U.frame=function(dt){
   $('#sync-val').textContent=P.harmT>0?`HARMONIC ${P.harmT.toFixed(1)}s`:`${Math.round(100-sv)} : ${Math.round(sv)}`;
   const sy=$('#sync'); sy.classList.toggle('harm',P.harmT>0); sy.classList.toggle('cool',P.harmCool>0&&P.harmT<=0);
   const S=XF.STATES[st]; $('#state-name b').textContent=S.name; $('#state-name b').style.color=S.color; $('#state-name span').textContent=P.harmCool>0&&P.harmT<=0?`하모닉 재충전 ${P.harmCool.toFixed(0)}s`:S.sub;
-  const gh=$('#sync-ghost'); let gv=null; if(st==='astral'&&P.cd.e<=0) gv=sv+XF.SYNC.SKILL_SHIFT; if(st==='neo'&&P.cd.q<=0) gv=sv-XF.SYNC.SKILL_SHIFT;
-  gh.style.display=gv===null?'none':'block'; if(gv!==null) gh.style.left=Math.max(0,Math.min(100,gv))+'%';
+  ['q','e'].forEach((k,i)=>{ const gh=$(i?'#sync-ghost2':'#sync-ghost'); const sd=XF.SKILLS[P.load[k]].side; const ok=P.harmT<=0&&P.cd[k]<=0;
+    const gv=sv+(sd==='elf'?-1:1)*XF.SYNC.SKILL_SHIFT; gh.style.display=ok?'block':'none'; if(ok) gh.style.left=Math.max(0,Math.min(100,gv))+'%'; });
   // 스킬 슬롯
   const SK=XF.SKILLS;
-  const qId=st==='harm'?'harmo':st==='astral'?(P.orbitT>0?'orbitShot':'orbit'):'lance';
-  const eId=st==='harm'?'harmo':st==='neo'?'rush':'gale';
-  slot('q',qId==='orbitShot'?'룬 연쇄 발사':SK[qId].name,qId==='orbitShot'?'elf':SK[qId].side,P.orbitT>0&&st==='astral'?0:P.cd.q,qId==='orbit'||qId==='orbitShot'?SK.orbit.cd:SK[qId].cd);
-  slot('e',SK[eId].name,SK[eId].side,P.cd.e,SK[eId].cd);
+  for(const k of ['q','e']){ const id=P.load[k], sk=SK[id]; slot(k,sk.name,sk.side,P.cd[k],sk.cd*(st==='harm'?.5:1));
+    const sid=G.stateSkillId(k); const hb=$('#sk-'+k+' .hold'); const ht=sid?('홀드: '+(sid==='orbitShot'?'룬 연쇄 발사':SK[sid].name)+(P.cd.st>0&&sid!=='orbitShot'?' '+P.cd.st.toFixed(0)+'s':'')):'';
+    if(hb._h!==ht){ hb.textContent=ht; hb._h=ht; } }
   slot('dash',null,null,P.cd.dash,XF.MOVES.dash.cd); slot('dodge',null,null,P.cd.dodge,.55);
-  const rId=st==='astral'?'nova':st==='neo'?'annih':'origin';
+  const rId=st==='harm'?'origin':P.load.r;
   $('#sk-r span').textContent=SK[rId].name; $('#ult-ring').style.strokeDashoffset=176*(1-P.ult/100);
   $('#ult-ring').style.stroke=st==='astral'?'#3dffb0':st==='neo'?'#3fa9ff':'#f4e9ff'; $('#sk-r').classList.toggle('ready',P.ult>=100); if(XF.Input.touch){ const tr=$('.t-r'); tr.style.setProperty('--ult',P.ult); tr.classList.toggle('ready',P.ult>=100); }
   // 상호작용

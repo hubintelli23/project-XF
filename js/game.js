@@ -20,28 +20,36 @@ const P = G.player = {};
 G.rigs={};
 function resetPlayer(cid){
   Object.assign(P,{char:cid,x:0,y:0,z:-5,vx:0,vy:0,vz:0,yaw:Math.PI,hpMax:600,hp:600,
-    sync:XF.CHARS[cid].startSync,harmT:0,harmCool:0,ult:0,act:null,buf:null,combo:0,comboT:0,
-    cd:{q:0,e:0,dash:0,dodge:0,swap:0},iframe:0,stunT:0,hurtT:0,poison:0,grounded:true,phase:0,
+    sync:50,lastSide:-1,load:Object.assign({},G.loadout),harmT:0,harmCool:0,ult:0,act:null,buf:null,combo:0,comboT:0,
+    cd:{q:0,e:0,st:0,dash:0,dodge:0,swap:0},qHold:{q:-1,e:-1},iframe:0,stunT:0,hurtT:0,poison:0,grounded:true,phase:0,
     atkHeld:false,atkT:0,atkHeavy:false,orbitT:0,orbitA:0,orbitTick:0,ore:0,shards:0,
     up:{rune:0,astral:0,arm:0,nano:0},prevState:null,hits:0,hitT:0,checkpoint:[0,-5],pull:null,perfect:false,dead:false,superT:0,trail:[]});
   P.state=stateOf();P.prevState=P.state;
 }
-const lean=()=>XF.CHARS[P.char].lean;
+const lean=()=>P.lastSide||-1;
+G.loadout={q:'lance',e:'gale',r:'nova'};
+try{ const s=JSON.parse(localStorage.getItem('xf_loadout')); if(s&&XF.SKILLS[s.q]&&XF.SKILLS[s.e]&&XF.SKILLS[s.r]) G.loadout=s; }catch(e){}
+G.setLoadout=function(l){ G.loadout=Object.assign({},l); if(P.load) P.load=Object.assign({},l); try{localStorage.setItem('xf_loadout',JSON.stringify(l));}catch(e){} };
+function startSyncOf(l){ const n=[l.q,l.e].reduce((s,k)=>s+(XF.SKILLS[k].side==='elf'?-1:1),0); return n<0?34:n>0?66:42; }
 function stateOf(){ if(P.harmT>0)return 'harm'; if(P.sync<50)return 'astral'; if(P.sync>50)return 'neo'; return lean()<0?'astral':'neo'; }
 G.stateOf=stateOf;
 const fwd=()=>[Math.sin(P.yaw),Math.cos(P.yaw)];
 function hpMax(){ return Math.round(600*(1+.12*P.up.astral)); }
 
 /* ---- 싱크로 게이지 ---- */
-function shiftSync(v){
-  if(P.harmT>0) return;
+function shiftSync(v,fromSkill){
+  if(P.harmT>0||!v) return;
   P.sync=clamp(P.sync+v,0,100);
+  // 하모닉 싱크로: 스킬로 게이지를 47~53 구간에 정확히 맞췄을 때 발동
+  if(fromSkill&&P.harmCool<=0&&P.sync>=SY.HARM_MIN&&P.sync<=SY.HARM_MAX){ P.harmT=SY.HARM_TIME; P.sync=50; A.play('harm');
+    G.msg('하모닉 싱크로 — 50 : 50','#f4e9ff',true); burst(P.x,1,P.z,C_HARM,5,1.2); G.cam.shake=.4; }
 }
 function updateSync(dt){
   if(P.harmT>0){ P.harmT-=dt; P.sync=50; if(P.harmT<=0){ P.harmT=0; P.sync=50+lean()*18; P.harmCool=10; G.msg('하모닉 싱크로 해제','#cbb8ff'); } }
   else { P.harmCool=Math.max(0,P.harmCool-dt);
-    if(P.harmCool<=0 && P.sync>=SY.HARM_MIN && P.sync<=SY.HARM_MAX){ P.harmT=SY.HARM_TIME; P.sync=50; A.play('harm');
-      G.msg('하모닉 싱크로 — 50 : 50','#f4e9ff',true); burst(P.x,1,P.z,C_HARM,5,1.2); G.cam.shake=.4; } }
+    // 조화 회복: 중앙 쪽으로 천천히 (하모닉 구간 바깥 경계까지만)
+    if(P.sync<SY.HARM_MIN-.5) P.sync=Math.min(SY.HARM_MIN-.5,P.sync+SY.RECOVER*dt);
+    else if(P.sync>SY.HARM_MAX+.5) P.sync=Math.max(SY.HARM_MAX+.5,P.sync-SY.RECOVER*dt); }
   if(P.harmT<=0 && (P.sync<=0||P.sync>=100)) overload();
   // 상태 전환 효과
   const s=stateOf(); P.state=s;
@@ -67,6 +75,7 @@ function mult(kind){
   return m;
 }
 function damageEnemy(e,base,o,nx,nz){
+  nx=nx||0; nz=nz||0; o=o||{};
   if(e.dead||e.spawnT>0||e.invuln>0) return;
   const s=stateOf(); const tru=o.kind==='true'||s==='harm';
   let d=base*mult(o.kind)*(o.mult||1);
@@ -171,7 +180,7 @@ G.respawn=function(){
 const pose=(a,b,t0,t1,t)=>M.mix(M.poses[a],M.poses[b],clamp((t-t0)/(t1-t0),0,1));
 function moveFwd(sp,dt){ const [fx,fz]=fwd(); P.vx=fx*sp; P.vz=fz*sp; }
 function comboHit(dmg,r,half,o){ o=Object.assign({kind:'phys',set:new Set()},o); const [fx,fz]=fwd();
-  const n=hitArc(P.x+fx*.4,P.z+fz*.4,P.yaw,r,half,dmg,o); if(n&&o.drift!==false) shiftSync(lean()*SY.HIT_DRIFT); return n; }
+  const n=hitArc(P.x+fx*.4,P.z+fz*.4,P.yaw,r,half,dmg,o); return n; }
 function slashFx(yaw,y,tilt,r,col,mesh,dur){
   G.fx.push({mesh:mesh||'arc',x:P.x+Math.sin(P.yaw)*.4,y:P.y+(y||1),z:P.z+Math.cos(P.yaw)*.4,rx:tilt||0,ry:-yaw+Math.PI/2,rz:0,s:r,s1:r*1.12,c:col,a:.6,life:dur||.22,add:1});
 }
@@ -190,13 +199,13 @@ const ACT = {
       ev:[.2,.29,.38].map((tt,i)=>[tt,a=>{ const [fx,fz]=fwd(); const d=1.4+i*1.4; const x=P.x+fx*d,z=P.z+fz*d;
         A.play('heavy',1.5);spike(x,z,charCol(),1+i*.25);
         hitArc(x,z,P.yaw,1.2,Math.PI,XF.MOVES.combo[2].dmg,{kind:'phys',set:a.sets[i]||(a.sets[i]=new Set()),launch:i===2?5:0,knock:.5});
-        if(i===0) shiftSync(lean()*SY.HIT_DRIFT); }])},
+        }])},
   c4:{dur:.78,cancel:.6,pose:t=>pose('blastA','blastB',.28,.36,t),
       tick:(a,dt)=>moveFwd(0,dt),
       ev:[[.12,a=>{ const [fx,fz]=fwd(); G.fx.push({mesh:'sphere',x:P.x+fx*1.6,y:P.y+1.1,z:P.z+fz*1.6,s:2.4,s1:.3,c:charCol(),a:.6,life:.25,add:1}); }],
           [.36,a=>{ const [fx,fz]=fwd(); A.play('boom'); ring(P.x+fx*1.6,P.y+.3,P.z+fz*1.6,charCol(),4.2,.35); burst(P.x+fx*1.6,P.y+1.1,P.z+fz*1.6,charCol(),2.2,.3);
           G.cam.shake=.35; const n=hitArc(P.x+fx*1.6,P.z+fz*1.6,P.yaw,3.6,Math.PI,XF.MOVES.combo[3].dmg,{kind:'phys',set:new Set(),knock:12,hs:.07,shake:.35});
-          if(n) shiftSync(lean()*SY.HIT_DRIFT*1.5); }]]},
+          }]]},
   heavy:{dur:.72,cancel:.55,pose:t=>pose('heavyA','heavyB',.22,.32,t),
       tick:(a,dt)=>moveFwd(a.t>.2&&a.t<.32?6:0,dt),
       ev:[[.05,a=>{ ring(P.x,.15,P.z,charCol(),1.4,.25); }],
@@ -211,7 +220,7 @@ const ACT = {
       land:a=>{ a.landed=true; A.play('boom'); G.cam.shake=.5; ring(P.x,.2,P.z,charCol(),5,.4); burst(P.x,.6,P.z,charCol(),2.6,.3);
         for(let i=0;i<8;i++){ const an=i/8*Math.PI*2; spike(P.x+Math.cos(an)*2.4,P.z+Math.sin(an)*2.4,charCol(),.9); }
         const n=hitArc(P.x,P.z,0,4.6,Math.PI,XF.MOVES.jheavy.dmg,{kind:'phys',set:new Set(),launch:6,knock:6,hs:.09,anyY:false,yUp:3.5,ult:3,poise:50});
-        if(n) shiftSync(lean()*SY.HIT_DRIFT*2); P.recover=.3; }},
+        P.recover=.3; }},
   dash:{dur:.34,cancel:.3,iframe:1,pose:t=>M.poses.dash,
       tick:(a,dt)=>{ moveFwd(a.t<.26?24:4,dt); hitLine(a.sx,a.sz,P.yaw,Math.hypot(P.x-a.sx,P.z-a.sz)+.6,1.8,XF.MOVES.dash.dmg,{kind:'phys',set:a.set,stun:1.3,knock:3,ult:2,poise:30});
         if(Math.random()<.7) G.ghosts.push({x:P.x,y:P.y,z:P.z,yaw:P.yaw,t:.25,c:stCol()}); },
@@ -221,14 +230,20 @@ const ACT = {
       ev:[[0,a=>{ A.play('dodge'); P.perfect=false; a.dir=G.inputYaw!==null?G.inputYaw:P.yaw+Math.PI; if(G.inputYaw!==null)P.yaw=a.dir; }]]},
   // ----- Q/E 기본 스킬 -----
   lance:{dur:.6,cancel:.45,pose:t=>M.poses.cast,tick:(a,dt)=>moveFwd(0,dt),
-      ev:[[0,a=>{ A.play('elf'); faceTarget(18); shiftSync(-SY.SKILL_SHIFT); circleRune(P.x,P.z,1.6,C_ELF,.6); }],
+      ev:[[0,a=>{ A.play('elf'); faceTarget(18); shiftSync(-SY.SKILL_SHIFT,true); circleRune(P.x,P.z,1.6,C_ELF,.6); }],
           ...[.15,.26,.37].map((tt,i)=>[tt,a=>spear(i)])]},
   gale:{dur:.7,cancel:.55,pose:t=>M.poses.aim,tick:(a,dt)=>moveFwd(a.t>.3&&a.t<.4?-6:0,dt),
-      ev:[[0,a=>{ A.play('cyber'); faceTarget(24); shiftSync(SY.SKILL_SHIFT); }],
+      ev:[[0,a=>{ A.play('cyber'); faceTarget(24); shiftSync(SY.SKILL_SHIFT,true); }],
           [.3,a=>{ A.play('laser'); const [fx,fz]=fwd(); G.cam.shake=.3;
             beam(P.x+fx*.6,P.y+1.25,P.z+fz*.6,P.yaw,24,.5,C_CY,.35);
             hitLine(P.x,P.z,P.yaw,24,1.4,XF.SKILLS.gale.dmg,{kind:'cyber',set:new Set(),knock:6,ult:4,hs:.06,yUp:3}); }]]},
-  // ----- 상태 전용 스킬 -----
+  barrier:{dur:.5,cancel:.32,pose:t=>M.poses.castUp,tick:(a,dt)=>moveFwd(0,dt),
+      ev:[[0,a=>{ A.play('elf'); shiftSync(-SY.SKILL_SHIFT,true); P.barrier={x:P.x,z:P.z,t:5,tk:0}; circleRune(P.x,P.z,4.2,C_ELF,.9); ring(P.x,.2,P.z,C_ELF,4.2,.5); }]]},
+  pile:{dur:.9,cancel:.68,armor:1,pose:t=>pose('dash','stabDownB',.3,.4,t),tick:(a,dt)=>moveFwd(a.t<.3?16:0,dt),
+      ev:[[0,a=>{ A.play('cyber'); faceTarget(10); shiftSync(SY.SKILL_SHIFT,true); }],
+          [.42,a=>{ const [fx,fz]=fwd(); const x=P.x+fx*1.5,z=P.z+fz*1.5; A.play('boom'); G.cam.shake=.45; ring(x,.2,z,C_CY,3.2,.35); burst(x,.6,z,C_RED,2,.25); spike(x,z,C_CY,1.4);
+            hitArc(x,z,P.yaw,3,Math.PI,XF.SKILLS.pile.dmg,{kind:'cyber',set:new Set(),knock:9,launch:5,guard:3,hs:.09,poise:90,ult:4}); }]]},
+  // ----- 상태 전용 스킬 (Q/E 0.5초 홀딩) -----
   orbit:{dur:.45,cancel:.3,pose:t=>M.poses.castUp,tick:(a,dt)=>moveFwd(0,dt),
       ev:[[0,a=>{ A.play('elf'); P.orbitT=8; P.orbitA=0; circleRune(P.x,P.z,2.4,C_ELF,.8); }]]},
   orbitShot:{dur:.5,cancel:.3,pose:t=>M.poses.cast,tick:(a,dt)=>moveFwd(0,dt),
@@ -247,11 +262,11 @@ const ACT = {
             const py=P.yaw+Math.PI; G.phantom={x:ox+Math.sin(P.yaw)*1.8,z:oz+Math.cos(P.yaw)*1.8,yaw:py,t:.5,char:P.char==='synthe'?'zero':'synthe'};
             const n=comboHit(XF.SKILLS.harmo.dmg,3.5,1.4,{kind:'true',drift:false,ult:3,hs:.06});
             hitArc(ox,oz,py,2.6,1.6,XF.SKILLS.harmo.dmg*.6,{kind:'true',set:new Set(),ult:2});
-            if(n){ for(const k of ['q','e','dash']) P.cd[k]=Math.max(0,P.cd[k]-2); } }]]},
+            if(n){ for(const k of ['q','e','st','dash']) P.cd[k]=Math.max(0,P.cd[k]-2); } }]]},
   // ----- 궁극기 -----
   nova:{dur:3.3,cancel:9,ult:1,iframe:1,pose:t=>t<.5?M.poses.castUp:t<2.6?M.poses.ult:M.poses.plunge,
       tick:(a,dt)=>{ P.vx=P.vz=0; if(a.t<.5){P.vy=6;} else if(a.t<2.5){P.vy=0;P.y=lerp(P.y,4,dt*3);} else P.vy=-14;
-        for(const e of a.held) if(!e.dead){ e.y=lerp(e.y,2.6,dt*4); e.vy=0; e.air=true; e.frozen=Math.max(e.frozen,.2); } },
+        for(const e of (a.held||[])) if(!e.dead){ e.y=lerp(e.y,2.6,dt*4); e.vy=0; e.air=true; e.frozen=Math.max(e.frozen,.2); } },
       ev:[[0,a=>{ A.play('ult'); G.cam.cine=3.3; a.held=[]; const [fx,fz]=fwd(); a.cx=P.x+fx*5;a.cz=P.z+fz*5; G.msg(XF.SKILLS.nova.name,'#3dffb0',true); }],
           [.5,a=>{ circleRune(a.cx,a.cz,11,C_ELF,2.8); }],
           [.75,a=>{ for(const e of G.enemies){ if(e.dead||Math.hypot(e.x-a.cx,e.z-a.cz)>11.5)continue; if(e.type!=='boss')a.held.push(e);
@@ -293,8 +308,8 @@ function startAct(type,extra){
 }
 function runAct(dt){
   const a=P.act; if(!a)return; const d=ACT[a.type]; const t0=a.t; a.t+=dt;
-  if(d.tick) d.tick(a,dt);
   if(d.ev) for(const [te,fn] of d.ev){ if((a.first?t0<=te:t0<te)&&a.t>=te){ fn(a); if(P.act!==a)return; } }
+  if(d.tick) d.tick(a,dt);
   a.first=false;
   if(a.t>=d.dur||(d.until&&d.until(a))){ P.act=null; if(['c1','c2','c3'].includes(a.type))P.comboT=.75; if(a.type==='c4')P.combo=0; }
 }
@@ -319,24 +334,33 @@ function doRequest(type){
     case 'dash': if(P.cd.dash<=0){ P.cd.dash=XF.MOVES.dash.cd; startAct('dash'); } else G.ui.denied('dash'); return;
     case 'q': skill('q'); return;
     case 'e': skill('e'); return;
+    case 'qs': stateSkill('q'); return;
+    case 'es': stateSkill('e'); return;
     case 'r':
       if(P.ult<100){ G.ui.denied('r'); return; }
-      P.ult=0; startAct(s==='astral'?'nova':s==='neo'?'annih':'origin'); return;
+      P.ult=0; startAct(s==='harm'?'origin':P.load.r); return;
     case 'swap': swapChar(); return;
   }
 }
 function skill(k){
-  const s=stateOf();
-  if(k==='q'&&P.orbitT>0&&s==='astral'){ P.orbitT=0; P.cd.q=XF.SKILLS.orbit.cd; startAct('orbitShot'); return; }
+  const s=stateOf(); const id=P.load[k]; const sk=XF.SKILLS[id];
   if(P.cd[k]>0){ G.ui.denied(k); return; }
-  let id;
-  if(s==='harm') id='harmo';
-  else if(k==='q') id=s==='astral'?'orbit':'lance';
-  else id=s==='neo'?'rush':'gale';
-  const sk=XF.SKILLS[id]; let cd=sk.cd; if(sk.side==='cyber') cd*=1-.06*P.up.nano;
-  P.cd[k]= id==='orbit'?99:cd;
-  if(id==='orbit') P.orbitCdK=true;
-  startAct(id);
+  let cd=sk.cd; if(sk.side==='cyber') cd*=1-.06*P.up.nano; if(s==='harm') cd*=.5;
+  P.cd[k]=cd; P.lastSide=sk.side==='elf'?-1:1; startAct(id);
+}
+G.stateSkillId=function(k){
+  const s=stateOf(), side=XF.SKILLS[P.load[k]].side;
+  if(s==='harm') return 'harmo';
+  if(s==='astral'&&side==='elf') return P.orbitT>0?'orbitShot':'orbit';
+  if(s==='neo'&&side==='cyber') return 'rush';
+  return null;
+};
+function stateSkill(k){
+  const id=G.stateSkillId(k);
+  if(!id){ skill(k); return; }
+  if(id==='orbitShot'){ P.orbitT=0; startAct('orbitShot'); return; }
+  if(P.cd.st>0){ G.ui.denied(k); return; }
+  P.cd.st=XF.SKILLS[id].cd; startAct(id);
 }
 function swapChar(){
   if(P.cd.swap>0||P.act&&ACT[P.act.type].ult){ G.ui.denied('swap'); return; }
@@ -382,7 +406,7 @@ function updateProj(dt){
       for(const e of G.enemies){ if(e.dead||e.spawnT>0)continue; if(p.set&&p.set.has(e))continue;
         if(Math.hypot(e.x-p.x,e.z-p.z)<p.r+e.def.r&&p.y>e.y-.4&&p.y<e.y+e.def.h+.4){
           if(p.explode){ p.life=0; break; }
-          p.set&&p.set.add(e); damageEnemy(e,p.dmg,{kind:p.kind,ult:p.ult,resist:p.resist,knock:2}); if(p.drift) { shiftSync(lean()*SY.HIT_DRIFT*.5); }
+          p.set&&p.set.add(e); { const sp=Math.hypot(p.vx,p.vz)||1; damageEnemy(e,p.dmg,{kind:p.kind,ult:p.ult,resist:p.resist,knock:2},p.vx/sp,p.vz/sp); }
           if(!p.pierce){p.life=0;break;} } }
       if(p.life<=0&&p.explode){ burst(p.x,p.y,p.z,p.c,p.explode,.25); A.play('heavy',1.6);
         hitArc(p.x,p.z,0,p.explode,Math.PI,p.dmg,{kind:p.kind,set:new Set(),ult:p.ult,resist:p.resist,knock:3,anyY:true}); p.explode=0; }
@@ -647,7 +671,7 @@ function updatePicks(dt){
 G.inputYaw=null;
 function updatePlayer(dt){
   const I=XF.Input;
-  for(const k in P.cd) if(k!=='q'||!(P.orbitT>0)) P.cd[k]=Math.max(0,P.cd[k]-dt);
+  for(const k in P.cd) P.cd[k]=Math.max(0,P.cd[k]-dt);
   P.iframe=Math.max(0,P.iframe-dt); P.hurtT=Math.max(0,P.hurtT-dt); P.comboT-=dt; P.hitT-=dt; if(P.hitT<=0)P.hits=0;
   P.hpMax=hpMax();
   if(P.stunT>0)P.stunT-=dt;
@@ -655,23 +679,29 @@ function updatePlayer(dt){
   // 룬 궤도
   if(P.orbitT>0){ P.orbitT-=dt; P.orbitA+=dt*3.2; P.orbitTick-=dt;
     if(P.orbitTick<=0){ P.orbitTick=.3; for(let i=0;i<4;i++){ const a=P.orbitA+i/4*Math.PI*2; hitArc(P.x+Math.cos(a)*2.2,P.z+Math.sin(a)*2.2,0,1,Math.PI,XF.SKILLS.orbit.dmg,{kind:'elf',set:new Set(),resist:3,ult:.5,hs:0,knock:.5}); } }
-    if(P.orbitT<=0){ P.cd.q=XF.SKILLS.orbit.cd; } }
-  if(P.cd.q>50&&P.orbitT<=0) P.cd.q=XF.SKILLS.orbit.cd;
+  }
+  // 룬 결계
+  if(P.barrier){ const b=P.barrier; b.t-=dt; b.tk-=dt;
+    if(b.tk<=0){ b.tk=.4; hitArc(b.x,b.z,0,4.2,Math.PI,XF.SKILLS.barrier.dmg,{kind:'elf',set:new Set(),knock:9,ult:.6,hs:0,stagger:.35,anyY:true}); }
+    for(const p of G.proj){ if(p.owner==='enemy'&&Math.hypot(p.x-b.x,p.z-b.z)<4.2){ p.owner='player'; p.vx*=-1.3; p.vz*=-1.3; p.kind='elf'; p.dmg*=1.6; p.c=C_ELF; p.set=new Set(); p.returnTo=null; spark(p.x,p.y,p.z,C_ELF,4); } }
+    if(b.t<=0) P.barrier=null; }
   // 입력 방향
   const mv=I.move(); const cy=G.cam.yaw; const fx=Math.sin(cy),fz=Math.cos(cy),rx=-Math.cos(cy),rz=Math.sin(cy);
   let dx=fx*mv[1]+rx*mv[0], dz=fz*mv[1]+rz*mv[0]; const mag=Math.min(1,Math.hypot(dx,dz));
   G.inputYaw=mag>.15?Math.atan2(dx,dz):null;
+  if(!P.load) P.load=Object.assign({},G.loadout);
   const ctrl=!P.dead&&P.stunT<=0&&G.mode==='play'&&!G.uiBlock;
   // 공격 입력 (0.5초 홀딩 = 강공격, Ctrl/점프 중 홀딩 = 점프 강공격)
   if(ctrl){
-    if(I.pressed('atk')){ P.atkHeld=true; P.atkT=0; P.atkHeavy=false; if(!P.grounded&&I.down('ctrl')){ P.atkHeavy=true; request('heavy'); } }
-    if(P.atkHeld){ if(I.down('atk')){ P.atkT+=dt; if(P.atkT>=.5&&!P.atkHeavy){ P.atkHeavy=true; request('heavy'); } }
+    if(I.pressed('atk')){ P.atkHeld=true; P.atkT0=performance.now(); P.atkHeavy=false; if(!P.grounded&&I.down('ctrl')){ P.atkHeavy=true; request('heavy'); } }
+    if(P.atkHeld){ if(I.down('atk')){ if(performance.now()-P.atkT0>=500&&!P.atkHeavy){ P.atkHeavy=true; request('heavy'); } }
       else { P.atkHeld=false; if(!P.atkHeavy) request('light'); } }
     if(I.pressed('jump')) request('jump');
     if(I.pressed('dodge')) request('dodge');
     if(I.pressed('dash')) request('dash');
-    if(I.pressed('q')) request('q');
-    if(I.pressed('e')) request('e');
+    for(const k of ['q','e']){
+      if(I.pressed(k)) P.qHold[k]=performance.now();
+      if(P.qHold[k]>=0){ if(I.down(k)){ if(performance.now()-P.qHold[k]>=500){ P.qHold[k]=-1; request(k+'s'); } } else { P.qHold[k]=-1; request(k); } } }
     if(I.pressed('r')) request('r');
     if(I.pressed('swap')) request('swap');
     if(I.pressed('interact')) interact();
@@ -761,6 +791,9 @@ function render(dt){
     // 룬 궤도
     if(P.orbitT>0) for(let i=0;i<4;i++){ const a=P.orbitA+i/4*Math.PI*2; R.drawTRS('diamond',P.x+Math.cos(a)*2.2,P.y+1.4,P.z+Math.sin(a)*2.2,Math.PI/2,-a+t*3,0,.35,1,.35,C_ELF,{add:1,a:.95});
       R.drawTRS('ringThin',P.x+Math.cos(a)*2.2,P.y+1.4,P.z+Math.sin(a)*2.2,Math.PI/2,-a,0,.45,1,.45,C_ELF,{add:1,a:.7}); }
+    if(P.barrier){ const b=P.barrier, al=Math.min(1,b.t)*.8; R.drawTRS('ring',b.x,.1,b.z,0,t*.8,0,4.2,1,4.2,C_ELF,{add:1,a:al}); R.drawTRS('ringThin',b.x,.12,b.z,0,-t*1.5,0,3.2,1,3.2,C_ELF,{add:1,a:al});
+      R.drawTRS('tube',b.x,1.2,b.z,0,0,0,8.4,2.4,8.4,C_ELF,{add:1,a:.06*al/.8}); for(let i=0;i<6;i++){ const a=t*.8+i/6*Math.PI*2; R.drawTRS('diamond',b.x+Math.cos(a)*4.2,1+Math.sin(t*3+i)*.3,b.z+Math.sin(a)*4.2,Math.PI/2,-a,0,.25,1,.25,C_ELF,{add:1,a:al}); }
+      R.light(b.x,1.5,b.z,[.2,1,.6],7); }
     if(P.harmT>0){ R.drawTRS('ringThin',P.x,.08,P.z,0,t*2,0,1.4,1,1.4,C_HARM,{add:1,a:.6}); R.light(P.x,2,P.z,[.9,.8,1],6); }
     else if(P.state==='neo'){ R.drawTRS('hex',P.x,1.1,P.z,0,t,0,1.5,2.2,1.5,C_CY,{add:1,a:.025}); }
   }
@@ -874,7 +907,7 @@ G.boot=function(canvas){
   requestAnimationFrame(t=>{last=t;loop(t);});
 };
 G.start=function(cid){
-  resetPlayer(cid); setupStage(); G.cam.yaw=Math.PI; G.cam.pitch=.3; G.cam.tx=P.x;G.cam.tz=P.z;
+  resetPlayer(cid); P.sync=startSyncOf(G.loadout); P.state=P.prevState=stateOf(); setupStage(); G.cam.yaw=Math.PI; G.cam.pitch=.3; G.cam.tx=P.x;G.cam.tz=P.z;
   G.mode='play'; G.time=0; G.stats={kills:0,maxCombo:0,start:performance.now()};
   G.msg('제1지역 — 잊혀진 실험동','#cfd8e3',true);
   setTimeout(()=>G.msg('WASD 이동 · 좌클릭 공격 · Q/E 스킬로 싱크로 게이지를 조율하라','#9fb3c8'),2200);
