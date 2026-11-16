@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0e13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>XF 신스에테르0 — 테스트 빌드 v0.1.0</title>
+<link rel="stylesheet" href="css/style.css?v=0.1.0">
+</head>
+<body>
+<!-- XF 『신스에테르0』 테스트 빌드 v0.1.0 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
+<canvas id="game"></canvas>
+<canvas id="fx2d"></canvas>
+<div id="letterbox"><i></i><i></i></div>
+<div id="glitch"></div>
+<div id="vignette"></div>
+
+<!-- ===== HUD ===== -->
+<div id="hud" class="hidden">
+  <div id="hud-tl">
+    <div id="who"><span id="who-name">신스</span><span id="who-en">SYNTHE</span><span id="who-tab">Tab 전환</span></div>
+    <div class="bar" id="hp"><i></i><b></b><span id="hp-t">600 / 600</span></div>
+    <div id="status"></div>
+  </div>
+  <div id="hud-tc">
+    <div id="objective"></div>
+    <div id="boss" class="hidden"><div id="boss-name">베스페라</div><div id="boss-sub"></div><div class="bar"><i></i><b></b></div><div id="boss-poise"><i></i></div></div>
+  </div>
+  <div id="hud-tr">
+    <canvas id="mini" width="170" height="170"></canvas>
+    <div id="inv"><span id="ore">◈ 0</span><span id="shards"></span></div>
+  </div>
+  <div id="combo"><b>0</b><span>HITS</span></div>
+  <div id="sync-wrap">
+    <div id="state-name"><b></b><span></span></div>
+    <div id="sync">
+      <div class="side l">ARCANA</div><div class="side r">OVERLORD</div>
+      <div id="sync-track"><div id="sync-fill-l"></div><div id="sync-fill-r"></div><div id="sync-harm"></div><div id="sync-ghost"></div><div id="sync-mark"></div></div>
+      <div id="sync-val">50 : 50</div>
+    </div>
+  </div>
+  <div id="skills">
+    <div class="sk" id="sk-dodge"><em>Shift</em><div class="ic">↺</div><span>회피</span><i class="cd"></i></div>
+    <div class="sk" id="sk-dash"><em>우클릭</em><div class="ic">⟫</div><span>위상 변위</span><i class="cd"></i></div>
+    <div class="sk big" id="sk-q"><em>Q</em><div class="ic">✦</div><span></span><i class="cd"></i><u></u></div>
+    <div class="sk big" id="sk-e"><em>E</em><div class="ic">⌁</div><span></span><i class="cd"></i><u></u></div>
+    <div class="sk ult" id="sk-r"><em>R</em><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="bg"/><circle cx="32" cy="32" r="28" class="fg" id="ult-ring"/></svg><div class="ic">✧</div><span></span></div>
+  </div>
+  <div id="prompt" class="hidden"><kbd>F</kbd><span></span></div>
+  <div id="msgs"></div>
+  <div id="hint">M 지도 · Esc 설정</div>
+</div>
+
+<!-- ===== 터치 조작 ===== -->
+<div id="touch">
+  <div id="touch-zone"></div>
+  <div id="joy"><div id="joy-knob"></div></div>
+  <div id="tbtns">
+    <button data-act="atk" class="t-atk">공격<small>홀드: 강공격</small></button>
+    <button data-act="jump" class="t-jump">점프</button>
+    <button data-act="dodge" class="t-dodge">회피</button>
+    <button data-act="dash" class="t-dash">대쉬</button>
+    <button data-act="q" class="t-q">Q</button>
+    <button data-act="e" class="t-e">E</button>
+    <button data-act="r" class="t-r">R</button>
+    <button data-act="swap" class="t-swap">전환</button>
+    <button data-act="interact" class="t-f">F</button>
+  </div>
+  <div id="ttop"><button data-act="map">지도</button><button data-act="pause">설정</button></div>
+</div>
+
+<!-- ===== 타이틀 ===== -->
+<div id="title" class="screen show">
+  <div class="title-inner">
+    <div class="code">PROJECT XF</div>
+    <h1>신스에테르<span>0</span></h1>
+    <div class="en">SYNTHETHER : ZERO</div>
+    <p class="log">엘프와 사이보그의 금기된 실험으로 태어난 혼혈 존재가 폐허에서 깨어나,<br>기계의 기술과 정령의 마력으로 자신의 근원과 세계의 붕괴를 막는 여정.</p>
+    <div class="menu">
+      <button id="btn-start" class="primary">각성 시작</button>
+      <button id="btn-controls">조작법</button>
+      <button id="btn-lore">세계관 기록</button>
+    </div>
+  </div>
+  <div class="ver">TEST BUILD <b id="ver">v0.1.0</b> · 제1지역 「잊혀진 실험동」</div>
+</div>
+
+<div id="select" class="screen">
+  <h2>싱크로 피험체 선택</h2>
+  <p class="sub">게임 중 <kbd>Tab</kbd>으로 언제든 쌍둥이를 전환할 수 있습니다. 싱크로 게이지는 공유됩니다.</p>
+  <div class="cards">
+    <button class="card elf" data-char="synthe"><div class="tag">ARCANA · 엘프 기반</div><h3>신스 <small>SYNTHE · 여성</small></h3><p></p><div class="lean">시작 게이지 → 아스트랄 버스트</div></button>
+    <button class="card cyber" data-char="zero"><div class="tag">OVERLORD · 사이보그 기반</div><h3>제로 <small>ZERO · 남성</small></h3><p></p><div class="lean">시작 게이지 → 네오 오버라이드</div></button>
+  </div>
+  <button class="back">← 돌아가기</button>
+</div>
+
+<div id="pause" class="screen">
+  <div class="panel">
+    <div class="tabs"><button data-tab="set" class="on">설정</button><button data-tab="ctl">조작법</button><button data-tab="sys">싱크로 시스템</button><button data-tab="lore">세계관</button></div>
+    <div class="tab on" id="tab-set">
+      <label>마우스 감도 <input type="range" id="o-sens" min="0.3" max="2.5" step="0.1" value="1"><output></output></label>
+      <label>전체 볼륨 <input type="range" id="o-vol" min="0" max="1" step="0.05" value="0.7"><output></output></label>
+      <label>렌더 해상도 <input type="range" id="o-res" min="0.5" max="1" step="0.05" value="1"><output></output></label>
+      <label class="chk"><input type="checkbox" id="o-inv"> 상하 시점 반전</label>
+      <label class="chk"><input type="checkbox" id="o-num" checked> 피해 숫자 표시</label>
+      <label class="chk"><input type="checkbox" id="o-shake" checked> 화면 흔들림</label>
+    </div>
+    <div class="tab" id="tab-ctl"></div>
+    <div class="tab" id="tab-sys"></div>
+    <div class="tab" id="tab-lore"></div>
+    <div class="row"><button id="btn-resume" class="primary">계속하기</button><button id="btn-restart">처음부터</button><button id="btn-title">타이틀로</button></div>
+    <div class="ver-s">XF 신스에테르0 · 테스트 빌드 <span class="v"></span></div>
+  </div>
+</div>
+
+<div id="station" class="screen">
+  <div class="panel wide">
+    <h2>정비실 — 조력자 정비 <small>HP 완전 회복 · 체크포인트 저장</small></h2>
+    <div class="ore-have">보유 광석 <b id="st-ore">0</b></div>
+    <div class="helpers" id="helpers"></div>
+    <div class="row"><button id="btn-st-close" class="primary">정비 완료</button></div>
+  </div>
+</div>
+
+<div id="story" class="screen"><div class="panel"><div id="story-body"></div><div class="row"><button id="btn-story" class="primary">닫기</button></div></div></div>
+<div id="death" class="screen"><div class="panel center"><h2 class="red">시스템 정지</h2><p>의체 기능이 정지되었습니다. 마지막 체크포인트에서 재기동합니다.</p><div class="row"><button id="btn-respawn" class="primary">재기동</button><button class="to-title">타이틀로</button></div></div></div>
+<div id="clear" class="screen"><div class="panel center"><div class="code">REGION 01 CLEAR</div><h2>잊혀진 실험동 — 기억 복원</h2><div id="clear-stats"></div><p class="dim">테스트 빌드는 여기까지입니다. 다음 지역(원소 도깨비 영역)은 이후 버전에서 이어집니다.</p><div class="row"><button id="btn-free" class="primary">자유 탐색 계속</button><button class="to-title">타이틀로</button></div></div></div>
+<div id="map" class="screen"><canvas id="bigmap"></canvas><div class="map-legend">● 나 &nbsp; <i class="r">●</i> 레비너스 &nbsp; <i class="b">◆</i> 델리리움 기둥 &nbsp; <i class="g">◎</i> 정비실 &nbsp; <i class="w">◇</i> 기억 조각 &nbsp; · M 닫기</div></div>
+<div id="err" class="hidden"></div>
+
+<script src="js/data.js?v=0.1.0"></script>
+<script src="js/engine.js?v=0.1.0"></script>
+<script src="js/audio.js?v=0.1.0"></script>
+<script src="js/actors.js?v=0.1.0"></script>
+<script src="js/world.js?v=0.1.0"></script>
+<script src="js/input.js?v=0.1.0"></script>
+<script src="js/game.js?v=0.1.0"></script>
+<script src="js/ui.js?v=0.1.0"></script>
+<script src="js/main.js?v=0.1.0"></script>
+</body>
+</html>
