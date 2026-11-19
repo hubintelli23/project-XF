@@ -1,4 +1,4 @@
-/* XF 신스에테르0 — style.css · v0.4.0 */
+/* XF 신스에테르0 — style.css · v0.4.2 */
 :root{--elf:#3dffb0;--cy:#3fa9ff;--red:#ff3b4e;--harm:#f4e9ff;--del:#7a6bff;--ink:#dfe6ee;--dim:#8794a3;--bg:#0b0e13;--panel:rgba(12,16,22,.92);--line:rgba(160,190,220,.18);
   --font:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"JetBrains Mono","Consolas",ui-monospace,monospace}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -203,7 +203,7 @@ body.touch #combo{top:30%}
 @media (max-width:700px){.helpers{grid-template-columns:1fr}.title-inner{margin:0 6vw}#title{background:rgba(5,7,10,.75)}}
 @media (max-width:1600px){body:not(.touch) #sync-wrap{bottom:104px}}
 
-/* ===== v0.4.0 휴대폰 대응 ===== */
+/* ===== v0.4.2 휴대폰 대응 ===== */
 html,body{height:100dvh;-webkit-touch-callout:none;overscroll-behavior:none}
 .panel,.screen{touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .screen{overflow-y:auto}
@@ -240,7 +240,7 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 }
 @media (max-height:500px){.panel .row{position:sticky;bottom:-16px;background:#0c1016;padding:8px 0 10px;margin-top:8px}}
 
-/* ===== v0.4.0 스킬 구성 ===== */
+/* ===== v0.4.2 스킬 구성 ===== */
 .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .presets button{padding:6px 12px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink)}
 .lo-row{display:flex;gap:12px;align-items:stretch;margin:10px 0}
@@ -259,7 +259,7 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 @media (max-width:560px){.lo-opts{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:760px),(max-height:500px){.lo-opt{padding:6px 8px}.lo-opt small{display:none}.lo-opt b{font-size:12px;margin:0}.lo-row{margin:6px 0}.lo-k{width:28px;font-size:15px}#lo-note{font-size:10.5px;line-height:1.5;margin:4px 0}.presets{margin-bottom:6px}.presets button{padding:4px 10px}}
 
-/* ===== v0.4.0 하모닉 과열 ===== */
+/* ===== v0.4.2 하모닉 과열 ===== */
 #heat{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;font-size:9px;color:var(--dim);opacity:0;transition:opacity .3s}
 #heat.on{opacity:1}
 #heat div{width:90px;height:3px;background:rgba(255,255,255,.1)}
@@ -271,7 +271,7 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 .sk.ult span{width:96px;text-align:right}
 .sk .hold{width:70px;word-break:keep-all;white-space:normal;text-align:center;line-height:1.1;top:auto;bottom:calc(100% + 3px)}
 
-/* ===== v0.4.0 버스트 모드 ===== */
+/* ===== v0.4.2 버스트 모드 ===== */
 .sk.on{box-shadow:0 0 16px currentColor,inset 0 0 12px currentColor}
 #sk-c.on.elf{color:var(--elf);border-color:var(--elf)}#sk-c.on.cyber{color:var(--cy);border-color:var(--cy)}#sk-c.on.harm{color:#ffb3a8;border-color:#ffb3a8}
 #sk-c .ic{color:inherit}#sk-c.off{opacity:.55}
@@ -281,3 +281,26 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 .t-c{width:48px;height:48px;right:262px;bottom:136px;font-size:12px!important}
 .t-v{width:54px;height:54px;right:268px;bottom:22px}
 #tbtns .t-c.on{background:rgba(255,255,255,.3);box-shadow:0 0 14px #fff}
+
+/* v0.4.2 마스터 모드 버튼 */
+body.touch #ttop .t-master{left:calc(max(16px,env(safe-area-inset-left)) + 108px)}
+#ttop .t-master{left:124px}
+/* v0.4.2 휴대폰: 싱크로(아이덴티티) 게이지를 가운데 하단으로 */
+body.touch #sync-wrap{top:auto;bottom:max(6px,env(safe-area-inset-bottom));width:min(300px,34vw)}
+body.touch #sync{padding:0 46px}
+body.touch #sync .side{font-size:8px;letter-spacing:.12em;top:0}
+body.touch #state-name{height:16px;margin-bottom:3px}
+body.touch #state-name b{font-size:12px;letter-spacing:.12em}
+body.touch #state-name span{font-size:9px;margin-left:6px}
+body.touch #sync-val{font-size:8.5px;margin-top:3px;letter-spacing:.1em;white-space:nowrap}
+body.touch #heat div{width:56px}
+body.touch .t-v{right:252px;bottom:96px}
+body.touch .t-c{right:258px;bottom:162px}
+body.touch #sync{padding:0 60px}
+body.touch #ttop button:nth-child(1){left:max(16px,env(safe-area-inset-left))}
+body.touch #ttop button:nth-child(2){left:calc(max(16px,env(safe-area-inset-left)) + 54px)}
+body.touch #ttop button:nth-child(3){left:calc(max(16px,env(safe-area-inset-left)) + 108px)}
+#heat span{white-space:nowrap}
+body.touch #heat div{width:46px}
+body.touch #sync-val{overflow:hidden;text-overflow:ellipsis}
+body.touch #sync-val{margin-left:-60px;margin-right:-60px}

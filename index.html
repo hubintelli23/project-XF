@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>XF 신스에테르0 — 테스트 빌드 v0.4.0</title>
-<link rel="stylesheet" href="css/style.css?v=0.4.0">
+<title>XF 신스에테르0 — 테스트 빌드 v0.4.2</title>
+<link rel="stylesheet" href="css/style.css?v=0.4.2">
 </head>
 <body>
-<!-- XF 『신스에테르0』 테스트 빌드 v0.4.0 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
+<!-- XF 『신스에테르0』 테스트 빌드 v0.4.2 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
 <canvas id="game"></canvas>
 <canvas id="fx2d"></canvas>
 <div id="letterbox"><i></i><i></i></div>
@@ -52,7 +52,7 @@
   </div>
   <div id="prompt" class="hidden"><kbd>F</kbd><span></span></div>
   <div id="msgs"></div>
-  <div id="hint">M 지도 · Esc 설정</div>
+  <div id="hint">M 지도 · Esc 설정 · ` / F2 마스터 모드</div>
 </div>
 
 <!-- ===== 터치 조작 ===== -->
@@ -72,7 +72,7 @@
     <button data-act="swap" class="t-swap">전환</button>
     <button data-act="interact" class="t-f">F</button>
   </div>
-  <div id="ttop"><button data-act="map">지도</button><button data-act="pause">설정</button></div>
+  <div id="ttop"><button data-act="map">지도</button><button data-act="pause">설정</button><button data-act="master" class="t-master">스킬</button></div>
 </div>
 
 <!-- ===== 타이틀 ===== -->
@@ -89,7 +89,7 @@
       <button id="btn-fs" class="only-touch">전체화면 전환</button>
     </div>
   </div>
-  <div class="ver">TEST BUILD <b id="ver">v0.4.0</b> · 제1지역 「잊혀진 실험동」</div>
+  <div class="ver">TEST BUILD <b id="ver">v0.4.2</b> · 제1지역 「잊혀진 실험동」</div>
 </div>
 
 <div id="select" class="screen">
@@ -151,14 +151,14 @@
 <div id="rotate"><div class="rot-ic">⟳</div><b>휴대폰을 가로로 돌려주세요</b><p>신스에테르0은 가로 화면에서 플레이합니다.</p></div>
 <div id="err" class="hidden"></div>
 
-<script src="js/data.js?v=0.4.0"></script>
-<script src="js/engine.js?v=0.4.0"></script>
-<script src="js/audio.js?v=0.4.0"></script>
-<script src="js/actors.js?v=0.4.0"></script>
-<script src="js/world.js?v=0.4.0"></script>
-<script src="js/input.js?v=0.4.0"></script>
-<script src="js/game.js?v=0.4.0"></script>
-<script src="js/ui.js?v=0.4.0"></script>
-<script src="js/main.js?v=0.4.0"></script>
+<script src="js/data.js?v=0.4.2"></script>
+<script src="js/engine.js?v=0.4.2"></script>
+<script src="js/audio.js?v=0.4.2"></script>
+<script src="js/actors.js?v=0.4.2"></script>
+<script src="js/world.js?v=0.4.2"></script>
+<script src="js/input.js?v=0.4.2"></script>
+<script src="js/game.js?v=0.4.2"></script>
+<script src="js/ui.js?v=0.4.2"></script>
+<script src="js/main.js?v=0.4.2"></script>
 </body>
 </html>

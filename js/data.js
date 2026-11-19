@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const XF = window.XF = window.XF || {};
-XF.VERSION = 'v0.4.0';
+XF.VERSION = 'v0.4.2';
 XF.TITLE = '신스에테르0';
 
 /* 싱크로 게이지: 0 = 엘프(아르카나) 극단, 100 = 사이보그(오버로드) 극단 */

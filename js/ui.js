@@ -14,8 +14,10 @@ U.init=function(){
   $$('.v').forEach(e=>e.textContent=XF.VERSION); $('#ver').textContent=XF.VERSION;
   $$('#select .card').forEach(c=>{ c.querySelector('p').textContent=XF.CHARS[c.dataset.char].desc; c.onclick=()=>{ A.init(); A.play('ui'); U.body=c.dataset.char; show('#select',false); openLoadout('start'); }; });
   $('#btn-lo-ok').onclick=()=>{ A.play('ui'); G.setLoadout(lo); show('#loadout',false);
-    if(loMode==='start'){ $('#hud').classList.remove('hidden'); G.start(U.body||'synthe'); } else { buildStation(); show('#station',true); } };
-  $('#btn-lo-back').onclick=()=>{ show('#loadout',false); if(loMode==='start') show('#select',true); else show('#station',true); };
+    if(loMode==='start'){ $('#hud').classList.remove('hidden'); G.start(U.body||'synthe'); }
+    else if(loMode==='master'){ closeMaster(true); }
+    else { buildStation(); show('#station',true); } };
+  $('#btn-lo-back').onclick=()=>{ if(loMode==='master'){ closeMaster(false); return; } show('#loadout',false); if(loMode==='start') show('#select',true); else show('#station',true); };
   $('#btn-st-load').onclick=()=>{ show('#station',false); openLoadout('station'); };
   $('#btn-start').onclick=()=>{ A.init(); A.play('ui'); goFull(); show('#title',false); show('#select',true); document.body.classList.add('ingame'); };
   $('#btn-fs').onclick=()=>goFull();
@@ -66,7 +68,7 @@ function buildTabs(){
   <tr><td>Q · E</td><td>장착 스킬 (스킬 구성에서 엘프·사이보그 스킬 자유 장착)</td></tr><tr><td>C</td><td>버스트 모드 켜기 / 끄기 (현재 상태의 버스트)</td></tr><tr><td>V</td><td>버스트 스킬 (버스트 모드 중에만)</td></tr><tr><td>R</td><td>장착 궁극기 (엘프 / 사이보그 선택) · 하모닉 상태에서는 진명 해방</td></tr>
   <tr><td>Tab</td><td>바디 전환 신스 ↔ 제로 (진영·스킬은 그대로)</td></tr>
   <tr><td>F</td><td>상호작용 — 기둥 정화/해킹, 조력자 정비, 기억 복원</td></tr>
-  <tr><td>M · Esc</td><td>지도 · 설정</td></tr></table>
+  <tr><td>M · Esc</td><td>지도 · 설정</td></tr><tr><td>\` · F2</td><td>마스터 모드 — 게임 중 어디서나 스킬 구성(Q·E·R) 변경</td></tr></table>
   <p class="dim">휴대폰: 왼쪽 드래그 이동 · 오른쪽 드래그 시점 · 공격 버튼 홀딩 = 강공격(공중이면 점프 강공격)</p>`;
   $('#tab-sys').innerHTML=`<p>진영은 바디(신스·제로)가 아니라 <b>장착한 스킬</b>로 정해집니다. 스킬 구성에서 Q·E 칸에 엘프 스킬(${S.barrier.name}, ${S.lance.name})과 사이보그 스킬(${S.gale.name}, ${S.pile.name})을 자유롭게 넣고(엘프 2 · 사이보그 2 · 하나씩), 궁극기도 엘프(${S.nova.name}) / 사이보그(${S.annih.name}) 중 고릅니다. 정비실에서 언제든 바꿀 수 있습니다.</p>
   <p>엘프 스킬은 싱크로 게이지를 왼쪽(아르카나)으로, 사이보그 스킬은 오른쪽(오버로드)으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다. 게이지는 스스로 천천히 중앙 쪽으로 돌아오며, 끝에 닿으면 <b>과부하</b>(피해 + 1초 경직).</p>
@@ -80,9 +82,22 @@ function buildTabs(){
   <h4>세력 구도</h4><table>${XF.FACTIONS.map(f=>`<tr><td>${f[0]}</td><td>수장 ${f[1]} · ${f[2]}<br>${f[3]}</td></tr>`).join('')}</table>`;
 }
 let lo=null, loMode='start';
+/* 마스터 모드: 게임 중 어디서나 스킬 구성 변경 (` 또는 F2) */
+function openMaster(){
+  if(G.mode!=='play'||G.uiBlock)return;
+  G.uiBlock=true; if(document.exitPointerLock)document.exitPointerLock(); A.play('ui');
+  openLoadout('master');
+}
+function closeMaster(apply){
+  show('#loadout',false); G.uiBlock=false; XF.Input.clear();
+  if(apply){ G.setLoadout(lo); G.msg('마스터 모드 — 스킬 구성 변경 완료','#f4e9ff'); }
+}
+U.openMaster=openMaster;
 function openLoadout(mode){
-  loMode=mode; lo=Object.assign({},G.loadout); renderLoadout(); show('#loadout',true);
+  loMode=mode; lo=Object.assign({},mode==='master'?G.player.load:G.loadout); renderLoadout(); show('#loadout',true);
+  $('#loadout h2').firstChild.textContent=mode==='master'?'마스터 모드 — 스킬 구성 ':'스킬 구성 ';
   $('#btn-lo-ok').textContent=mode==='start'?'각성 시작':'구성 적용';
+  $('#btn-lo-back').textContent=mode==='master'?'닫기 (` / F2)':'← 돌아가기';
 }
 function renderLoadout(){
   const SK=XF.SKILLS;
@@ -128,8 +143,10 @@ U.denied=function(k){ const el=$('#sk-'+(k==='swap'?'dash':k)); if(!el)return; e
 let mapOpen=false;
 U.frame=function(dt){
   const I=XF.Input;
-  if(I.pressed('pause')){ if(mapOpen){toggleMap();} else if($('#pause').classList.contains('show')) U.pause(false); else if(!G.uiBlock) U.pause(true); }
+  if(I.pressed('pause')&&loMode==='master'&&$('#loadout').classList.contains('show')){ closeMaster(false); }
+  else if(I.pressed('pause')){ if(mapOpen){toggleMap();} else if($('#pause').classList.contains('show')) U.pause(false); else if(!G.uiBlock) U.pause(true); }
   if(I.pressed('map')&&(G.mode==='play'&&!G.uiBlock||mapOpen)) toggleMap();
+  if(I.pressed('master')){ if(loMode==='master'&&$('#loadout').classList.contains('show')) closeMaster(false); else openMaster(); }
   const c=ctx2.canvas; const w=c.clientWidth,h=c.clientHeight,dpr=Math.min(2,devicePixelRatio||1);
   if(c.width!==Math.floor(w*dpr)){ c.width=Math.floor(w*dpr); c.height=Math.floor(h*dpr); }
   ctx2.setTransform(dpr,0,0,dpr,0,0); ctx2.clearRect(0,0,w,h);
@@ -163,7 +180,7 @@ U.frame=function(dt){
   // 싱크로 게이지
   const sv=P.sync; $('#sync-mark').style.left=sv+'%';
   $('#sync-fill-l').style.width=Math.max(0,50-sv)+'%'; $('#sync-fill-r').style.width=Math.max(0,sv-50)+'%';
-  $('#sync-val').textContent=P.harmT>0?`HARMONIC · 코어 과열 ${Math.round(P.core)}% · 신체 과부하 ${Math.round(P.body)}%`:`${Math.round(100-sv)} : ${Math.round(sv)}`;
+  $('#sync-val').textContent=P.harmT>0?(XF.Input.touch?`HARMONIC · 코어 ${Math.round(P.core)}% · 신체 ${Math.round(P.body)}%`:`HARMONIC · 코어 과열 ${Math.round(P.core)}% · 신체 과부하 ${Math.round(P.body)}%`):`${Math.round(100-sv)} : ${Math.round(sv)}`;
   const sy=$('#sync'); sy.classList.toggle('harm',P.harmT>0); sy.classList.toggle('cool',P.core>=XF.SYNC.REENTRY_HEAT&&P.harmT<=0);
   // 표시부 과열: 흰색 → 붉은색
   const hh=Math.min(1,P.core/100), tr=$('#sync-track');
