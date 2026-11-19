@@ -1,4 +1,4 @@
-/* XF 신스에테르0 — style.css · v0.3.1 */
+/* XF 신스에테르0 — style.css · v0.4.0 */
 :root{--elf:#3dffb0;--cy:#3fa9ff;--red:#ff3b4e;--harm:#f4e9ff;--del:#7a6bff;--ink:#dfe6ee;--dim:#8794a3;--bg:#0b0e13;--panel:rgba(12,16,22,.92);--line:rgba(160,190,220,.18);
   --font:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"JetBrains Mono","Consolas",ui-monospace,monospace}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -186,7 +186,7 @@ body.touch #hint{display:none}
 .t-r{width:58px;height:58px;right:112px;bottom:158px;border:2px solid rgba(255,255,255,.25)!important;background:conic-gradient(rgba(255,255,255,.35) calc(var(--ult,0)*1%),rgba(10,14,20,.55) 0)!important}
 .t-r.ready{box-shadow:0 0 18px rgba(255,255,255,.6);border-color:#fff!important}
 .t-swap{width:46px;height:46px;right:40px;bottom:192px;font-size:11px!important}
-.t-f{width:54px;height:54px;right:270px;bottom:60px;display:none!important;border-color:var(--harm)!important}
+.t-f{width:54px;height:54px;right:336px;bottom:70px;display:none!important;border-color:var(--harm)!important}
 body.can-f .t-f{display:flex!important}
 #tbtns button::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.7) calc(var(--cd,0)*1%),transparent 0);pointer-events:none}
 #ttop button{border-radius:4px;padding:6px 10px;left:16px;font-size:11px;position:fixed;top:132px}
@@ -201,9 +201,9 @@ body.touch #hud-tl{transform:scale(.8);transform-origin:left top}
 body.touch #prompt{top:auto;bottom:124px;left:auto;right:330px;transform:none}
 body.touch #combo{top:30%}
 @media (max-width:700px){.helpers{grid-template-columns:1fr}.title-inner{margin:0 6vw}#title{background:rgba(5,7,10,.75)}}
-@media (max-width:1150px){body:not(.touch) #sync-wrap{bottom:104px}}
+@media (max-width:1600px){body:not(.touch) #sync-wrap{bottom:104px}}
 
-/* ===== v0.3.1 휴대폰 대응 ===== */
+/* ===== v0.4.0 휴대폰 대응 ===== */
 html,body{height:100dvh;-webkit-touch-callout:none;overscroll-behavior:none}
 .panel,.screen{touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .screen{overflow-y:auto}
@@ -240,7 +240,7 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 }
 @media (max-height:500px){.panel .row{position:sticky;bottom:-16px;background:#0c1016;padding:8px 0 10px;margin-top:8px}}
 
-/* ===== v0.3.1 스킬 구성 ===== */
+/* ===== v0.4.0 스킬 구성 ===== */
 .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .presets button{padding:6px 12px;font-size:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink)}
 .lo-row{display:flex;gap:12px;align-items:stretch;margin:10px 0}
@@ -259,7 +259,7 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 @media (max-width:560px){.lo-opts{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:760px),(max-height:500px){.lo-opt{padding:6px 8px}.lo-opt small{display:none}.lo-opt b{font-size:12px;margin:0}.lo-row{margin:6px 0}.lo-k{width:28px;font-size:15px}#lo-note{font-size:10.5px;line-height:1.5;margin:4px 0}.presets{margin-bottom:6px}.presets button{padding:4px 10px}}
 
-/* ===== v0.3.1 하모닉 과열 ===== */
+/* ===== v0.4.0 하모닉 과열 ===== */
 #heat{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;font-size:9px;color:var(--dim);opacity:0;transition:opacity .3s}
 #heat.on{opacity:1}
 #heat div{width:90px;height:3px;background:rgba(255,255,255,.1)}
@@ -270,3 +270,14 @@ body.touch #ttop button:last-child{left:calc(max(16px,env(safe-area-inset-left))
 .sk span{width:70px;white-space:normal;word-break:keep-all;text-align:center;font-size:9px;line-height:1.15;top:calc(100% + 3px);bottom:auto}
 .sk.ult span{width:96px;text-align:right}
 .sk .hold{width:70px;word-break:keep-all;white-space:normal;text-align:center;line-height:1.1;top:auto;bottom:calc(100% + 3px)}
+
+/* ===== v0.4.0 버스트 모드 ===== */
+.sk.on{box-shadow:0 0 16px currentColor,inset 0 0 12px currentColor}
+#sk-c.on.elf{color:var(--elf);border-color:var(--elf)}#sk-c.on.cyber{color:var(--cy);border-color:var(--cy)}#sk-c.on.harm{color:#ffb3a8;border-color:#ffb3a8}
+#sk-c .ic{color:inherit}#sk-c.off{opacity:.55}
+#sk-v.dis{opacity:.4}
+#sync.burst #sync-track{animation:bpulse .6s infinite alternate}
+@keyframes bpulse{to{filter:brightness(1.6)}}
+.t-c{width:48px;height:48px;right:262px;bottom:136px;font-size:12px!important}
+.t-v{width:54px;height:54px;right:268px;bottom:22px}
+#tbtns .t-c.on{background:rgba(255,255,255,.3);box-shadow:0 0 14px #fff}

@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 const XF = window.XF = window.XF || {};
-XF.VERSION = 'v0.3.1';
+XF.VERSION = 'v0.4.0';
 XF.TITLE = '신스에테르0';
 
 /* 싱크로 게이지: 0 = 엘프(아르카나) 극단, 100 = 사이보그(오버로드) 극단 */
@@ -16,7 +16,15 @@ XF.SYNC = {
   DMG_LOSS: .45,               // 신체 과부하 100%일 때 피해량 감소율
   CORE_COOL: 6,                // 하모닉 밖 코어 냉각 속도
   BODY_COOL: 5,                // 하모닉 밖 신체 회복 속도
-  REENTRY_HEAT: 40,            // 코어 과열이 이 값 미만이어야 하모닉 재진입 가능
+  REENTRY_HEAT: 40,
+  // 버스트 모드 (C 켜기/끄기 · V 버스트 스킬)
+  BURST_MIN: 10,               // 아르카나/오버로드: 켜려면 중앙에서 최소 이만큼 치우쳐 있어야 함 (= 에너지)
+  BURST_DRAIN: 3.5,            // 버스트 중 초당 에너지 소모 (게이지가 중앙으로 이동)
+  BURST_POWER: 1.35,           // 버스트 중 해당 진영 스킬 피해 배율
+  BURST_CD: .7,                // 버스트 중 해당 진영 스킬 쿨타임 배율
+  HARM_BURST_MAX_CORE: 60,     // 하모닉 버스트: 코어 과열이 이 값 미만일 때만 켤 수 있음
+  HARM_BURST_HEAT: 2,          // 하모닉 버스트 중 과열 · 과부하 속도 배율
+  HARM_BURST_POWER: 1.25,      // 하모닉 버스트 중 모든 피해 배율            // 코어 과열이 이 값 미만이어야 하모닉 재진입 가능
   SKILL_SHIFT: 14,             // 기본 Q/E 스킬 1회당 이동량
   RECOVER: 1.2,                // 초당 중앙(조화) 쪽으로 자연 회복 — 하모닉 구간 직전까지
   OVERLOAD_RESET: 22           // 과부하 후 복귀 위치(끝에서 떨어진 거리)
@@ -55,7 +63,7 @@ XF.SKILLS = {
   pile:   {key:'', name:'열가속 파일 벙커', side:'cyber', cd:8, dmg:120, shift:+1, desc:'전진 쇄도 후 충격 파일 벙커 내리꽂기 · 가드 불가'},
   lance:  {key:'Q', name:'천천(天穿)의 마력창', side:'elf',   cd:6,  dmg:38, shift:-1, desc:'아스트랄 마력창 3자루 연속 사격 · 게이지 엘프 쪽 이동'},
   gale:   {key:'E', name:'나노 버스터 게일',    side:'cyber', cd:6,  dmg:95, shift:+1, desc:'레일건 플라즈마 관통탄 · 게이지 사이보그 쪽 이동'},
-  // 상태 전용 스킬
+  // 버스트 스킬 (버스트 모드 중 V)
   orbit:  {key:'Q', name:'아르카나 룬 궤도',     side:'elf',   cd:12,  dmg:9,  desc:'룬 4개 회전 · 마력 저항 30%↓ · 재시전 시 연쇄 폭발'},
   rush:   {key:'E', name:'나노 프레임 쇄도포',   side:'cyber', cd:9,  dmg:60, desc:'관통 돌진 + 플라즈마 레이저 · 3초 가드 불가'},
   harmo:  {key:'Q/E', name:'교차 영창: 하모닉 슬래시', side:'harm', cd:1.6, dmg:70, desc:'쌍둥이 환영 교차 베기 · 전 스킬 쿨타임 -2초'},

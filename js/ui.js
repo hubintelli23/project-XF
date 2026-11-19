@@ -63,7 +63,7 @@ function buildTabs(){
   <tr><td>Space + 좌클릭 + Ctrl</td><td>점프 강공격 — ${mv.jheavy.name} (공중에서 0.5초 홀딩도 가능)</td></tr>
   <tr><td>Shift</td><td>회피 (무적 · 타이밍이 맞으면 <b>완벽 회피</b> → 감속 + 게이지 균형 보정)</td></tr>
   <tr><td>우클릭</td><td>대쉬 — ${mv.dash.name} (무적 관통 · 스턴)</td></tr>
-  <tr><td>Q · E</td><td>장착 스킬 (스킬 구성에서 엘프·사이보그 스킬 자유 장착) · <b>0.5초 홀딩</b> = 상태 전용 스킬</td></tr><tr><td>R</td><td>장착 궁극기 (엘프 / 사이보그 선택) · 하모닉 상태에서는 진명 해방</td></tr>
+  <tr><td>Q · E</td><td>장착 스킬 (스킬 구성에서 엘프·사이보그 스킬 자유 장착)</td></tr><tr><td>C</td><td>버스트 모드 켜기 / 끄기 (현재 상태의 버스트)</td></tr><tr><td>V</td><td>버스트 스킬 (버스트 모드 중에만)</td></tr><tr><td>R</td><td>장착 궁극기 (엘프 / 사이보그 선택) · 하모닉 상태에서는 진명 해방</td></tr>
   <tr><td>Tab</td><td>바디 전환 신스 ↔ 제로 (진영·스킬은 그대로)</td></tr>
   <tr><td>F</td><td>상호작용 — 기둥 정화/해킹, 조력자 정비, 기억 복원</td></tr>
   <tr><td>M · Esc</td><td>지도 · 설정</td></tr></table>
@@ -71,9 +71,9 @@ function buildTabs(){
   $('#tab-sys').innerHTML=`<p>진영은 바디(신스·제로)가 아니라 <b>장착한 스킬</b>로 정해집니다. 스킬 구성에서 Q·E 칸에 엘프 스킬(${S.barrier.name}, ${S.lance.name})과 사이보그 스킬(${S.gale.name}, ${S.pile.name})을 자유롭게 넣고(엘프 2 · 사이보그 2 · 하나씩), 궁극기도 엘프(${S.nova.name}) / 사이보그(${S.annih.name}) 중 고릅니다. 정비실에서 언제든 바꿀 수 있습니다.</p>
   <p>엘프 스킬은 싱크로 게이지를 왼쪽(아르카나)으로, 사이보그 스킬은 오른쪽(오버로드)으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다. 게이지는 스스로 천천히 중앙 쪽으로 돌아오며, 끝에 닿으면 <b>과부하</b>(피해 + 1초 경직).</p>
   <table>
-  <tr><td class="s-elf">아스트랄 버스트</td><td>${XF.STATES.astral.desc}<br>엘프 칸 홀딩 → <b>${S.orbit.name}</b> (${S.orbit.desc})</td></tr>
-  <tr><td class="s-cy">네오 오버라이드</td><td>${XF.STATES.neo.desc}<br>사이보그 칸 홀딩 → <b>${S.rush.name}</b> (${S.rush.desc})</td></tr>
-  <tr><td class="s-harm">하모닉 싱크로</td><td>스킬로 게이지를 47~53에 정확히 맞추면 발동. 게이지 소모 없음 · 쿨타임 절반 · 진짜 피해<br>아무 칸 홀딩 → <b>${S.harmo.name}</b> · R → <b>${S.origin.name}</b>(사용 후 하모닉을 스스로 마무리)<br><b>과열</b>: 유지할수록 표시부가 붉어진다. 신체 과부하(피해량 감소)와 코어 과열은 서로를 가속하며, 코어 과열 100%에서 <b>강제 해제</b> + 누적 과열에 비례한 후유증. 코어 과열이 ${XF.SYNC.REENTRY_HEAT}% 미만으로 식어야 재진입 가능.</td></tr>
+  <tr><td class="s-elf">아르카나 (아스트랄 버스트)</td><td>${XF.STATES.astral.desc}<br><b>C 아르카나 버스트</b>: 엘프 스킬 피해 ×${XF.SYNC.BURST_POWER} · 쿨타임 ×${XF.SYNC.BURST_CD} — 아르카나 에너지(중앙에서 치우친 양)를 초당 ${XF.SYNC.BURST_DRAIN}씩 소모, 다 쓰거나 C를 다시 누르면 꺼짐<br><b>V</b> → ${S.orbit.name} (${S.orbit.desc})</td></tr>
+  <tr><td class="s-cy">오버로드 (네오 오버라이드)</td><td>${XF.STATES.neo.desc}<br><b>C 오버로드 버스트</b>: 사이보그 스킬 피해 ×${XF.SYNC.BURST_POWER} · 쿨타임 ×${XF.SYNC.BURST_CD} — 오버로드 에너지 소모, 다 쓰거나 C로 꺼짐<br><b>V</b> → ${S.rush.name} (${S.rush.desc})</td></tr>
+  <tr><td class="s-harm">하모닉 싱크로</td><td>스킬로 게이지를 47~53에 정확히 맞추면 발동. 게이지 소모 없음 · 쿨타임 절반 · 진짜 피해<br><b>C 하모닉 버스트</b>: 코어 과열 ${XF.SYNC.HARM_BURST_MAX_CORE}% 미만일 때만 켜짐 · 모든 피해 ×${XF.SYNC.HARM_BURST_POWER} · 대신 과열·과부하 속도 ×${XF.SYNC.HARM_BURST_HEAT} — C로 끄거나 과열 임계(강제 해제) 시 꺼짐<br><b>V</b> → ${S.harmo.name} · R → <b>${S.origin.name}</b>(사용 후 하모닉을 스스로 마무리)<br><b>과열</b>: 유지할수록 표시부가 붉어진다. 신체 과부하(피해량 감소)와 코어 과열은 서로를 가속하며, 코어 과열 100%에서 <b>강제 해제</b> + 누적 과열에 비례한 후유증. 코어 과열이 ${XF.SYNC.REENTRY_HEAT}% 미만으로 식어야 재진입 가능.</td></tr>
   </table>`;
   $('#tab-lore').innerHTML=`<h4>연대기 — Chronology of Astra-XF</h4><table>${XF.LORE.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td></tr>`).join('')}</table>
   <h4>세계 상태</h4><table>${XF.WORLD_STATE.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td></tr>`).join('')}</table>
@@ -93,7 +93,7 @@ function renderLoadout(){
   $('#lo-r').innerHTML=XF.LOAD_ULTS.map(id=>opt(id,'r')).join('');
   $('#lo-presets').innerHTML=XF.PRESETS.map((p,i)=>`<button data-p="${i}">${p.name}</button>`).join('');
   const n=[lo.q,lo.e].filter(k=>SK[k].side==='elf').length;
-  $('#lo-note').innerHTML=`현재 구성: <b>${n===2?'엘프 2':n===0?'사이보그 2':'엘프 1 · 사이보그 1'}</b> — 엘프 스킬은 게이지를 아르카나 쪽으로, 사이보그 스킬은 오버로드 쪽으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다.<br>Q/E를 <b>0.5초 홀딩</b>하면 현재 상태 전용 스킬: 아스트랄(엘프 칸) ${SK.orbit.name} · 네오(사이보그 칸) ${SK.rush.name} · 하모닉(아무 칸) ${SK.harmo.name}. 하모닉 상태의 R은 ${SK.origin.name}.`;
+  $('#lo-note').innerHTML=`현재 구성: <b>${n===2?'엘프 2':n===0?'사이보그 2':'엘프 1 · 사이보그 1'}</b> — 엘프 스킬은 게이지를 아르카나 쪽으로, 사이보그 스킬은 오버로드 쪽으로 ${XF.SYNC.SKILL_SHIFT}씩 움직입니다.<br><b>C</b>로 현재 상태의 버스트 모드를 켜고 끄며, 켜진 동안 <b>V</b>로 버스트 스킬: 아르카나 ${SK.orbit.name} · 오버로드 ${SK.rush.name} · 하모닉 ${SK.harmo.name}. 하모닉 상태의 R은 ${SK.origin.name}.`;
   $$('#loadout .lo-opt').forEach(b=>b.onclick=()=>{ lo[b.dataset.slot]=b.dataset.id; A.play('ui'); renderLoadout(); });
   $$('#lo-presets button').forEach(b=>b.onclick=()=>{ const p=XF.PRESETS[+b.dataset.p]; lo={q:p.q,e:p.e,r:p.r}; A.play('ui'); renderLoadout(); });
 }
@@ -170,14 +170,26 @@ U.frame=function(dt){
   if(hh>.01){ const r=255,gg=Math.round(244-200*hh),b=Math.round(255-215*hh); tr.style.borderColor=`rgb(${r},${gg},${b})`; tr.style.boxShadow=`0 0 ${10+18*hh}px rgba(255,${Math.round(230-190*hh)},${Math.round(255-210*hh)},${.35+.45*hh})`; }
   else { tr.style.borderColor=''; tr.style.boxShadow=''; }
   $('#heat-c').style.transform=`scaleX(${hh})`; $('#heat-b').style.transform=`scaleX(${Math.min(1,P.body/100)})`; $('#heat').classList.toggle('on',P.core>1||P.body>1);
-  const S=XF.STATES[st]; $('#state-name b').textContent=S.name; $('#state-name b').style.color=S.color; $('#state-name span').textContent=P.harmT<=0&&P.core>=XF.SYNC.REENTRY_HEAT?`코어 냉각 중 ${Math.round(P.core)}%`:S.sub;
+  const S=XF.STATES[st]; $('#state-name b').textContent=S.name; $('#state-name b').style.color=S.color; $('#state-name span').textContent=P.burst?(P.burst==='harm'?`버스트 ON · 과열 가속 ×${XF.SYNC.HARM_BURST_HEAT}`:`버스트 ON · 에너지 ${Math.round(G.burstEnergy())}`):P.harmT<=0&&P.core>=XF.SYNC.REENTRY_HEAT?`코어 냉각 중 ${Math.round(P.core)}%`:S.sub;
   ['q','e'].forEach((k,i)=>{ const gh=$(i?'#sync-ghost2':'#sync-ghost'); const sd=XF.SKILLS[P.load[k]].side; const ok=P.harmT<=0&&P.cd[k]<=0;
     const gv=sv+(sd==='elf'?-1:1)*XF.SYNC.SKILL_SHIFT; gh.style.display=ok?'block':'none'; if(ok) gh.style.left=Math.max(0,Math.min(100,gv))+'%'; });
   // 스킬 슬롯
   const SK=XF.SKILLS;
   for(const k of ['q','e']){ const id=P.load[k], sk=SK[id]; slot(k,sk.name,sk.side,P.cd[k],sk.cd*(st==='harm'?.5:1));
-    const sid=G.stateSkillId(k); const hb=$('#sk-'+k+' .hold'); const SHORT={orbit:'룬 궤도',orbitShot:'룬 연쇄 발사',rush:'쇄도포',harmo:'하모닉 슬래시'}; const ht=sid?('홀드: '+SHORT[sid]+(P.cd.st>0&&sid!=='orbitShot'?' '+P.cd.st.toFixed(0)+'s':'')):'';
-    if(hb._h!==ht){ hb.textContent=ht; hb._h=ht; } }
+  }
+  // C 버스트 · V 버스트 스킬
+  { const c=$('#sk-c'); const side=st==='astral'?'elf':st==='neo'?'cyber':'harm'; c.classList.toggle('on',!!P.burst);
+    ['elf','cyber','harm'].forEach(x=>c.classList.toggle(x,side===x));
+    const en=st==='harm'?Math.max(0,XF.SYNC.HARM_BURST_MAX_CORE-P.core):G.burstEnergy();
+    const can=st==='harm'?P.core<XF.SYNC.HARM_BURST_MAX_CORE:en>=XF.SYNC.BURST_MIN; c.classList.toggle('off',!P.burst&&!can);
+    const lbl=P.burst?'버스트 ON':'버스트 OFF';
+    if(c._n!==lbl){ c.querySelector('span').textContent=lbl; c._n=lbl; }
+    const bid=G.burstSkillId(); const v=$('#sk-v'); v.classList.toggle('dis',!bid);
+    const vn=bid?(bid==='orbitShot'?'룬 연쇄 발사':SK[bid].name):'버스트 스킬';
+    if(v._n!==vn){ v.querySelector('span').textContent=vn; v._n=vn; }
+    v.querySelector('.cd').style.height=(bid&&bid!=='orbitShot'&&P.cd.st>0?Math.min(1,P.cd.st/SK[bid].cd)*100:0)+'%';
+    if(XF.Input.touch){ $('.t-c').classList.toggle('on',!!P.burst); const tv=$('.t-v'); tv.style.opacity=bid?1:.4; tv.style.setProperty('--cd',bid&&bid!=='orbitShot'&&P.cd.st>0?Math.min(1,P.cd.st/SK[bid].cd)*100:0); }
+    $('#sync').classList.toggle('burst',!!P.burst); }
   slot('dash',null,null,P.cd.dash,XF.MOVES.dash.cd); slot('dodge',null,null,P.cd.dodge,.55);
   const rId=st==='harm'?'origin':P.load.r;
   $('#sk-r span').textContent=SK[rId].name; $('#ult-ring').style.strokeDashoffset=176*(1-P.ult/100);

@@ -21,7 +21,7 @@ G.rigs={};
 function resetPlayer(cid){
   Object.assign(P,{char:cid,x:0,y:0,z:-5,vx:0,vy:0,vz:0,yaw:Math.PI,hpMax:600,hp:600,
     sync:50,lastSide:-1,load:Object.assign({},G.loadout),harmT:0,core:0,body:0,afterT:0,ult:0,act:null,buf:null,combo:0,comboT:0,
-    cd:{q:0,e:0,st:0,dash:0,dodge:0,swap:0},qHold:{q:-1,e:-1},iframe:0,stunT:0,hurtT:0,poison:0,grounded:true,phase:0,
+    cd:{q:0,e:0,st:0,dash:0,dodge:0,swap:0},burst:null,iframe:0,stunT:0,hurtT:0,poison:0,grounded:true,phase:0,
     atkHeld:false,atkT:0,atkHeavy:false,orbitT:0,orbitA:0,orbitTick:0,ore:0,shards:0,
     up:{rune:0,astral:0,arm:0,nano:0},prevState:null,hits:0,hitT:0,checkpoint:[0,-5],pull:null,perfect:false,dead:false,superT:0,trail:[]});
   P.state=stateOf();P.prevState=P.state;
@@ -48,7 +48,7 @@ function shiftSync(v,fromSkill){
 }
 /* 하모닉 해제: forced=과열 임계 강제 해제 (후유증은 누적 과열에 비례 — 구체 수치는 임시) */
 function endHarm(forced){
-  if(P.harmT<=0)return; const heat=P.core; P.harmT=0; P.sync=50+lean()*18;
+  if(P.harmT<=0)return; const heat=P.core; P.harmT=0; if(P.burst==='harm'){ P.burst=null; if(forced) G.msg('하모닉 버스트 OFF — 과열 임계','#ff4d5e'); } P.sync=50+lean()*18;
   if(forced){
     P.afterT=3+7*heat/100; const loss=Math.round(P.hpMax*.12*heat/100); P.hp=Math.max(1,P.hp-loss); P.stunT=Math.max(P.stunT,.7);
     A.play('overload'); G.msg('과열 임계 — 하모닉 싱크로 강제 해제','#ff4d5e',true); G.ui&&G.ui.glitch(1.2); G.cam.shake=.6;
@@ -59,8 +59,9 @@ G.endHarm=endHarm;
 function updateSync(dt){
   if(P.harmT>0){ P.sync=50;
     // 신체 한계 ↔ 코어 한계: 서로를 가속
-    P.core=Math.min(100,P.core+SY.CORE_RATE*(1+P.body/100)*dt);
-    P.body=Math.min(100,P.body+SY.BODY_RATE*(1+P.core/100)*dt);
+    const hb=P.burst==='harm'?SY.HARM_BURST_HEAT:1;
+    P.core=Math.min(100,P.core+SY.CORE_RATE*(1+P.body/100)*hb*dt);
+    P.body=Math.min(100,P.body+SY.BODY_RATE*(1+P.core/100)*hb*dt);
     if(P.core>=100) endHarm(true); }
   else { P.afterT=Math.max(0,P.afterT-dt);
     P.core=Math.max(0,P.core-SY.CORE_COOL*(P.afterT>0?.5:1)*dt);
@@ -68,6 +69,7 @@ function updateSync(dt){
     // 조화 회복: 중앙 쪽으로 천천히 (하모닉 구간 바깥 경계까지만)
     if(P.sync<SY.HARM_MIN-.5) P.sync=Math.min(SY.HARM_MIN-.5,P.sync+SY.RECOVER*dt);
     else if(P.sync>SY.HARM_MAX+.5) P.sync=Math.max(SY.HARM_MAX+.5,P.sync-SY.RECOVER*dt); }
+  updateBurst(dt);
   if(P.harmT<=0 && (P.sync<=0||P.sync>=100)) overload();
   // 상태 전환 효과
   const s=stateOf(); P.state=s;
@@ -88,8 +90,9 @@ function overload(){
 function mult(kind){
   const s=stateOf(); let m=1-SY.DMG_LOSS*P.body/100;   // 신체 한계: 출력 저하
   if(kind==='phys') m*=1+.12*P.up.arm;
-  if(kind==='elf'){ m*=1+.15*P.up.rune; if(s==='astral')m*=1.4; }
-  if(kind==='cyber'){ m*=1+.15*P.up.nano; if(s==='neo')m*=1.4; }
+  if(kind==='elf'){ m*=1+.15*P.up.rune; if(s==='astral')m*=1.4; if(P.burst==='astral')m*=SY.BURST_POWER; }
+  if(kind==='cyber'){ m*=1+.15*P.up.nano; if(s==='neo')m*=1.4; if(P.burst==='neo')m*=SY.BURST_POWER; }
+  if(P.burst==='harm') m*=SY.HARM_BURST_POWER;
   return m;
 }
 function damageEnemy(e,base,o,nx,nz){
@@ -262,7 +265,7 @@ const ACT = {
       ev:[[0,a=>{ A.play('cyber'); faceTarget(10); shiftSync(SY.SKILL_SHIFT,true); }],
           [.42,a=>{ const [fx,fz]=fwd(); const x=P.x+fx*1.5,z=P.z+fz*1.5; A.play('boom'); G.cam.shake=.45; ring(x,.2,z,C_CY,3.2,.35); burst(x,.6,z,C_RED,2,.25); spike(x,z,C_CY,1.4);
             hitArc(x,z,P.yaw,3,Math.PI,XF.SKILLS.pile.dmg,{kind:'cyber',set:new Set(),knock:9,launch:5,guard:3,hs:.09,poise:90,ult:4}); }]]},
-  // ----- 상태 전용 스킬 (Q/E 0.5초 홀딩) -----
+  // ----- 버스트 스킬 (버스트 모드 중 V) -----
   orbit:{dur:.45,cancel:.3,pose:t=>M.poses.castUp,tick:(a,dt)=>moveFwd(0,dt),
       ev:[[0,a=>{ A.play('elf'); P.orbitT=8; P.orbitA=0; circleRune(P.x,P.z,2.4,C_ELF,.8); }]]},
   orbitShot:{dur:.5,cancel:.3,pose:t=>M.poses.cast,tick:(a,dt)=>moveFwd(0,dt),
@@ -353,8 +356,7 @@ function doRequest(type){
     case 'dash': if(P.cd.dash<=0){ P.cd.dash=XF.MOVES.dash.cd; startAct('dash'); } else G.ui.denied('dash'); return;
     case 'q': skill('q'); return;
     case 'e': skill('e'); return;
-    case 'qs': stateSkill('q'); return;
-    case 'es': stateSkill('e'); return;
+    case 'v': burstSkill(); return;
     case 'r':
       if(P.ult<100){ G.ui.denied('r'); return; }
       P.ult=0; startAct(s==='harm'?'origin':P.load.r); return;
@@ -365,21 +367,36 @@ function skill(k){
   const s=stateOf(); const id=P.load[k]; const sk=XF.SKILLS[id];
   if(P.cd[k]>0){ G.ui.denied(k); return; }
   let cd=sk.cd; if(sk.side==='cyber') cd*=1-.06*P.up.nano; if(s==='harm') cd*=.5;
+  if((P.burst==='astral'&&sk.side==='elf')||(P.burst==='neo'&&sk.side==='cyber')) cd*=SY.BURST_CD;
   P.cd[k]=cd; P.lastSide=sk.side==='elf'?-1:1; if(P.harmT>0) P.body=Math.min(100,P.body+SY.BODY_PER_SKILL); startAct(id);
 }
-G.stateSkillId=function(k){
-  const s=stateOf(), side=XF.SKILLS[P.load[k]].side;
-  if(s==='harm') return 'harmo';
-  if(s==='astral'&&side==='elf') return P.orbitT>0?'orbitShot':'orbit';
-  if(s==='neo'&&side==='cyber') return 'rush';
-  return null;
-};
-function stateSkill(k){
-  const id=G.stateSkillId(k);
-  if(!id){ skill(k); return; }
+/* ---- 버스트 모드: C 켜기/끄기 · V 버스트 스킬 ---- */
+const BURST_NAME={astral:'아르카나 버스트',neo:'오버로드 버스트',harm:'하모닉 버스트'};
+G.burstEnergy=function(){ return P.sync<50?50-P.sync:P.sync-50; };
+G.burstSkillId=function(){ if(!P.burst)return null; if(P.burst==='astral') return P.orbitT>0?'orbitShot':'orbit'; if(P.burst==='neo') return 'rush'; return 'harmo'; };
+function burstOff(reason){ if(!P.burst)return; const s=P.burst; P.burst=null; G.msg(BURST_NAME[s]+' OFF'+(reason?' — '+reason:''),'#9fb3c8'); A.play('ui'); }
+function toggleBurst(){
+  if(P.burst){ burstOff(); return; }
+  const s=stateOf();
+  if(s==='harm'){ if(P.core>=SY.HARM_BURST_MAX_CORE){ G.msg('코어 과열 '+Math.round(P.core)+'% — 하모닉 버스트 불가','#ff8a6b'); G.ui.denied('c'); return; } }
+  else if(G.burstEnergy()<SY.BURST_MIN){ G.msg('에너지 부족 — '+(s==='astral'?'아르카나':'오버로드')+' 쪽으로 더 치우쳐야 한다','#9fb3c8'); G.ui.denied('c'); return; }
+  P.burst=s; const c=s==='astral'?C_ELF:s==='neo'?C_CY:C_HARM;
+  A.play(s==='astral'?'elf':s==='neo'?'cyber':'harm'); G.msg(BURST_NAME[s]+' ON',XF.STATES[s].color,true); G.cam.shake=.3;
+  ring(P.x,.2,P.z,c,5,.5); burst(P.x,1,P.z,c,3,.4); if(s==='astral') circleRune(P.x,P.z,3,C_ELF,.8);
+}
+function burstSkill(){
+  const id=G.burstSkillId();
+  if(!id){ G.msg('버스트 모드가 꺼져 있다 — C','#9fb3c8'); G.ui.denied('v'); return; }
   if(id==='orbitShot'){ P.orbitT=0; startAct('orbitShot'); return; }
-  if(P.cd.st>0){ G.ui.denied(k); return; }
+  if(P.cd.st>0){ G.ui.denied('v'); return; }
   P.cd.st=XF.SKILLS[id].cd; if(P.harmT>0) P.body=Math.min(100,P.body+SY.BODY_PER_SKILL); startAct(id);
+}
+function updateBurst(dt){
+  if(!P.burst)return;
+  const s=stateOf();
+  if(s!==P.burst){ burstOff('상태 변화'); return; }
+  if(s==='astral'){ P.sync=Math.min(SY.HARM_MIN-.5,P.sync+SY.BURST_DRAIN*dt); if(G.burstEnergy()<=50-(SY.HARM_MIN-.5)+.01) burstOff('에너지 소진'); }
+  else if(s==='neo'){ P.sync=Math.max(SY.HARM_MAX+.5,P.sync-SY.BURST_DRAIN*dt); if(G.burstEnergy()<=(SY.HARM_MAX+.5)-50+.01) burstOff('에너지 소진'); }
 }
 function swapChar(){
   if(P.cd.swap>0||P.act&&ACT[P.act.type].ult){ G.ui.denied('swap'); return; }
@@ -721,9 +738,10 @@ function updatePlayer(dt){
     if(I.pressed('jump')) request('jump');
     if(I.pressed('dodge')) request('dodge');
     if(I.pressed('dash')) request('dash');
-    for(const k of ['q','e']){
-      if(I.pressed(k)) P.qHold[k]=performance.now();
-      if(P.qHold[k]>=0){ if(I.down(k)){ if(performance.now()-P.qHold[k]>=500){ P.qHold[k]=-1; request(k+'s'); } } else { P.qHold[k]=-1; request(k); } } }
+    if(I.pressed('q')) request('q');
+    if(I.pressed('e')) request('e');
+    if(I.pressed('burst')) toggleBurst();
+    if(I.pressed('bskill')) request('v');
     if(I.pressed('r')) request('r');
     if(I.pressed('swap')) request('swap');
     if(I.pressed('interact')) interact();
@@ -813,6 +831,9 @@ function render(dt){
     // 룬 궤도
     if(P.orbitT>0) for(let i=0;i<4;i++){ const a=P.orbitA+i/4*Math.PI*2; R.drawTRS('diamond',P.x+Math.cos(a)*2.2,P.y+1.4,P.z+Math.sin(a)*2.2,Math.PI/2,-a+t*3,0,.35,1,.35,C_ELF,{add:1,a:.95});
       R.drawTRS('ringThin',P.x+Math.cos(a)*2.2,P.y+1.4,P.z+Math.sin(a)*2.2,Math.PI/2,-a,0,.45,1,.45,C_ELF,{add:1,a:.7}); }
+    if(P.burst){ const bc=P.burst==='astral'?C_ELF:P.burst==='neo'?C_CY:[1,lerp(.9,.3,P.core/100),lerp(1,.35,P.core/100)];
+      for(let i=0;i<3;i++){ const yy=((t*1.2+i/3)%1); R.drawTRS('ringThin',P.x,P.y+yy*2.4,P.z,0,t*3,0,.9-yy*.3,1,.9-yy*.3,bc,{add:1,a:.7*(1-yy)}); }
+      R.light(P.x,1.4,P.z,bc,6); if(Math.random()<.35) spark(P.x+rand(-.5,.5),P.y+rand(.3,2),P.z+rand(-.5,.5),bc,1.5); }
     if(P.barrier){ const b=P.barrier, al=Math.min(1,b.t)*.8; R.drawTRS('ring',b.x,.1,b.z,0,t*.8,0,4.2,1,4.2,C_ELF,{add:1,a:al}); R.drawTRS('ringThin',b.x,.12,b.z,0,-t*1.5,0,3.2,1,3.2,C_ELF,{add:1,a:al});
       R.drawTRS('tube',b.x,1.2,b.z,0,0,0,8.4,2.4,8.4,C_ELF,{add:1,a:.06*al/.8}); for(let i=0;i<6;i++){ const a=t*.8+i/6*Math.PI*2; R.drawTRS('diamond',b.x+Math.cos(a)*4.2,1+Math.sin(t*3+i)*.3,b.z+Math.sin(a)*4.2,Math.PI/2,-a,0,.25,1,.25,C_ELF,{add:1,a:al}); }
       R.light(b.x,1.5,b.z,[.2,1,.6],7); }

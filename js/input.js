@@ -8,7 +8,7 @@ let lookX=0, lookY=0; const joy={x:0,y:0,id:null,ox:0,oy:0};
 
 const KEYMAP={KeyW:'fwd',ArrowUp:'fwd',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',
   Space:'jump',ShiftLeft:'dodge',ShiftRight:'dodge',KeyQ:'q',KeyE:'e',KeyR:'r',Tab:'swap',KeyF:'interact',KeyM:'map',Escape:'pause',
-  ControlLeft:'ctrl',ControlRight:'ctrl',KeyJ:'atk',KeyK:'dash'};
+  KeyC:'burst',KeyV:'bskill',ControlLeft:'ctrl',ControlRight:'ctrl',KeyJ:'atk',KeyK:'dash'};
 function press(n){ if(!held.has(n)) edge.add(n); held.add(n); }
 function release(n){ held.delete(n); }
 I.down=n=>held.has(n); I.pressed=n=>edge.has(n);

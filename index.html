@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>XF 신스에테르0 — 테스트 빌드 v0.3.1</title>
-<link rel="stylesheet" href="css/style.css?v=0.3.1">
+<title>XF 신스에테르0 — 테스트 빌드 v0.4.0</title>
+<link rel="stylesheet" href="css/style.css?v=0.4.0">
 </head>
 <body>
-<!-- XF 『신스에테르0』 테스트 빌드 v0.3.1 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
+<!-- XF 『신스에테르0』 테스트 빌드 v0.4.0 · index.html은 화면 구조만, 핵심 코드는 js/ 폴더 -->
 <canvas id="game"></canvas>
 <canvas id="fx2d"></canvas>
 <div id="letterbox"><i></i><i></i></div>
@@ -44,6 +44,8 @@
   <div id="skills">
     <div class="sk" id="sk-dodge"><em>Shift</em><div class="ic">↺</div><span>회피</span><i class="cd"></i></div>
     <div class="sk" id="sk-dash"><em>우클릭</em><div class="ic">⟫</div><span>위상 변위</span><i class="cd"></i></div>
+    <div class="sk" id="sk-c"><em>C</em><div class="ic">◈</div><span>버스트 모드</span><i class="cd"></i></div>
+    <div class="sk" id="sk-v"><em>V</em><div class="ic">✶</div><span>버스트 스킬</span><i class="cd"></i></div>
     <div class="sk big" id="sk-q"><em>Q</em><div class="ic">✦</div><span></span><i class="cd"></i><u></u><b class="hold"></b></div>
     <div class="sk big" id="sk-e"><em>E</em><div class="ic">⌁</div><span></span><i class="cd"></i><u></u><b class="hold"></b></div>
     <div class="sk ult" id="sk-r"><em>R</em><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" class="bg"/><circle cx="32" cy="32" r="28" class="fg" id="ult-ring"/></svg><div class="ic">✧</div><span></span></div>
@@ -65,6 +67,8 @@
     <button data-act="q" class="t-q">Q</button>
     <button data-act="e" class="t-e">E</button>
     <button data-act="r" class="t-r">R</button>
+    <button data-act="burst" class="t-c">C<small>버스트</small></button>
+    <button data-act="bskill" class="t-v">V</button>
     <button data-act="swap" class="t-swap">전환</button>
     <button data-act="interact" class="t-f">F</button>
   </div>
@@ -85,7 +89,7 @@
       <button id="btn-fs" class="only-touch">전체화면 전환</button>
     </div>
   </div>
-  <div class="ver">TEST BUILD <b id="ver">v0.3.1</b> · 제1지역 「잊혀진 실험동」</div>
+  <div class="ver">TEST BUILD <b id="ver">v0.4.0</b> · 제1지역 「잊혀진 실험동」</div>
 </div>
 
 <div id="select" class="screen">
@@ -147,14 +151,14 @@
 <div id="rotate"><div class="rot-ic">⟳</div><b>휴대폰을 가로로 돌려주세요</b><p>신스에테르0은 가로 화면에서 플레이합니다.</p></div>
 <div id="err" class="hidden"></div>
 
-<script src="js/data.js?v=0.3.1"></script>
-<script src="js/engine.js?v=0.3.1"></script>
-<script src="js/audio.js?v=0.3.1"></script>
-<script src="js/actors.js?v=0.3.1"></script>
-<script src="js/world.js?v=0.3.1"></script>
-<script src="js/input.js?v=0.3.1"></script>
-<script src="js/game.js?v=0.3.1"></script>
-<script src="js/ui.js?v=0.3.1"></script>
-<script src="js/main.js?v=0.3.1"></script>
+<script src="js/data.js?v=0.4.0"></script>
+<script src="js/engine.js?v=0.4.0"></script>
+<script src="js/audio.js?v=0.4.0"></script>
+<script src="js/actors.js?v=0.4.0"></script>
+<script src="js/world.js?v=0.4.0"></script>
+<script src="js/input.js?v=0.4.0"></script>
+<script src="js/game.js?v=0.4.0"></script>
+<script src="js/ui.js?v=0.4.0"></script>
+<script src="js/main.js?v=0.4.0"></script>
 </body>
 </html>
