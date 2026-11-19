@@ -73,9 +73,10 @@ function buildTabs(){
   <table>
   <tr><td class="s-elf">아스트랄 버스트</td><td>${XF.STATES.astral.desc}<br>엘프 칸 홀딩 → <b>${S.orbit.name}</b> (${S.orbit.desc})</td></tr>
   <tr><td class="s-cy">네오 오버라이드</td><td>${XF.STATES.neo.desc}<br>사이보그 칸 홀딩 → <b>${S.rush.name}</b> (${S.rush.desc})</td></tr>
-  <tr><td class="s-harm">하모닉 싱크로</td><td>스킬로 게이지를 47~53에 정확히 맞추면 ${XF.SYNC.HARM_TIME}초간 발동. 게이지 소모 없음 · 쿨타임 절반 · 진짜 피해<br>아무 칸 홀딩 → <b>${S.harmo.name}</b> · R → <b>${S.origin.name}</b><br>종료 후 10초간 재발동 불가.</td></tr>
+  <tr><td class="s-harm">하모닉 싱크로</td><td>스킬로 게이지를 47~53에 정확히 맞추면 발동. 게이지 소모 없음 · 쿨타임 절반 · 진짜 피해<br>아무 칸 홀딩 → <b>${S.harmo.name}</b> · R → <b>${S.origin.name}</b>(사용 후 하모닉을 스스로 마무리)<br><b>과열</b>: 유지할수록 표시부가 붉어진다. 신체 과부하(피해량 감소)와 코어 과열은 서로를 가속하며, 코어 과열 100%에서 <b>강제 해제</b> + 누적 과열에 비례한 후유증. 코어 과열이 ${XF.SYNC.REENTRY_HEAT}% 미만으로 식어야 재진입 가능.</td></tr>
   </table>`;
   $('#tab-lore').innerHTML=`<h4>연대기 — Chronology of Astra-XF</h4><table>${XF.LORE.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td></tr>`).join('')}</table>
+  <h4>세계 상태</h4><table>${XF.WORLD_STATE.map(l=>`<tr><td>${l[0]}</td><td>${l[1]}</td></tr>`).join('')}</table>
   <h4>세력 구도</h4><table>${XF.FACTIONS.map(f=>`<tr><td>${f[0]}</td><td>수장 ${f[1]} · ${f[2]}<br>${f[3]}</td></tr>`).join('')}</table>`;
 }
 let lo=null, loMode='start';
@@ -108,8 +109,8 @@ U.story=function(type){
   G.uiBlock=true; if(document.exitPointerLock)document.exitPointerLock();
   const P=G.player;
   $('#story-body').innerHTML= type==='capsule'
-    ? `<div class="code">SYNCHRO PROJECT · LOG SE 188</div><h3>각성 캡슐 기록</h3><p>「에테르 코어 폭주. 델리리움 역류 확인. 피험체 아스트라 오리진의 코어를 강제 분원(分源) — 개체명 <b style="color:#3dffb0">신스</b>, <b style="color:#3fa9ff">제로</b>. 봉인 처리.」</p><p>기록은 거기서 끊겨 있다. 지금은 SE 210년. 22년 동안 아무도 이 실험동에 돌아오지 않았다.</p>`
-    : `<div class="code">MEMORY RESTORED · 01</div><h3>기억 복원 — 싱크로 프로젝트</h3><p>세 개의 기억 조각이 공명한다. 엘프의 마법 문명과 사이보그의 나노 기술을 하나로 묶으려 했던 금기의 연구. 그 중심에 있던 단 하나의 존재 — <b>아스트라 오리진</b>.</p><p>「신스와 제로가 완벽한 균형(50:50)을 이룰 때, 근원의 힘은 되돌아온다.」</p><p class="dim">게이트가 열렸다. 기억의 심층부에서 델리리움의 사도가 기다린다.</p>`;
+    ? `<div class="code">SYNCHRO PROJECT · LOG SE 188</div><h3>각성 캡슐 기록</h3><p>「실험 중단 명령 수신. 아스텔리온 — 신호 소실. 피험체 <b style="color:#3dffb0">신스</b>, <b style="color:#3fa9ff">제로</b>의 기억을 제거한 뒤 봉인 처리.」</p><p>기록은 거기서 끊겨 있다. 지금은 SE 240년대. 그 사이 델리리움이 퍼졌고, 세계는 한 번 더 무너졌다.</p>`
+    : `<div class="code">MEMORY RESTORED · 01</div><h3>기억 복원 — 싱크로 프로젝트</h3><p>세 개의 기억 조각이 공명한다. 이 조각들은 <b>아스텔리온의 의식</b>에서 파생된 기억의 잔향 — 에테르 코어 깊은 곳에 잠든 본체와 지금도 이어진 채, 각자 독립된 형태로 대륙 곳곳에 흩어져 있던 것들이다.</p><p>조각 속에 남아 있던 것은 싱크로 프로젝트의 기억. 엘프의 마법 문명과 사이보그의 나노 기술을 하나로 묶으려 했던 금기의 연구.</p><p class="dim">게이트가 열렸다. 기억의 심층부에서 델리리움의 사도가 기다린다.</p>`;
   show('#story',true);
 };
 U.showDeath=function(){ show('#death',true); G.uiBlock=true; if(document.exitPointerLock)document.exitPointerLock(); };
@@ -144,6 +145,8 @@ U.frame=function(dt){
   let stt=''; if(P.poison>0) stt+=`<span style="color:#9a8cff">델리리움 중독 ${P.poison.toFixed(0)}s</span>`; if(P.fog>.85) stt+=`<span style="color:#7fa0ff">시스템 오류</span>`;
   if(P.orbitT>0) stt+=`<span style="color:var(--elf)">룬 궤도 ${P.orbitT.toFixed(0)}s</span>`; if(P.stunT>0) stt+=`<span style="color:#ff6b7d">과부하 경직</span>`;
   if(st==='neo') stt+=`<span style="color:var(--cy)">슈퍼아머</span>`;
+  if(P.body>=1) stt+=`<span style="color:#ff9a7a">출력 저하 -${Math.round(XF.SYNC.DMG_LOSS*P.body)}%</span>`;
+  if(P.afterT>0) stt+=`<span style="color:#ff4d5e">과열 후유증 ${P.afterT.toFixed(0)}s</span>`;
   const sEl=$('#status'); if(sEl._h!==stt){ sEl.innerHTML=stt; sEl._h=stt; }
   // 목표
   let obj=''; const f=G.flags;
@@ -151,7 +154,7 @@ U.frame=function(dt){
   else if(f.bossStarted) obj='<b>베스페라</b>를 쓰러뜨려라';
   else if(W.gateOpen) obj='기억의 심층부로 진입하라';
   else if(P.shards>=3) obj='게이트에서 <b>기억을 복원</b>하라 [F]';
-  else obj=`레비너스 처형자를 처치해 <b>기억 조각</b>을 모아라 (${P.shards}/3) · 광석은 정비실에서 강화`;
+  else obj=`레비너스 처형자를 처치해 <b>기억 조각</b>(아스텔리온의 의식 조각)을 모아라 (${P.shards}/3) · 광석은 정비실에서 강화`;
   const oEl=$('#objective'); if(oEl._h!==obj){ oEl.innerHTML=obj; oEl._h=obj; }
   // 인벤토리
   $('#ore').textContent='◈ '+P.ore; $('#shards').textContent='◆'.repeat(P.shards)+'◇'.repeat(Math.max(0,3-P.shards));
@@ -160,15 +163,20 @@ U.frame=function(dt){
   // 싱크로 게이지
   const sv=P.sync; $('#sync-mark').style.left=sv+'%';
   $('#sync-fill-l').style.width=Math.max(0,50-sv)+'%'; $('#sync-fill-r').style.width=Math.max(0,sv-50)+'%';
-  $('#sync-val').textContent=P.harmT>0?`HARMONIC ${P.harmT.toFixed(1)}s`:`${Math.round(100-sv)} : ${Math.round(sv)}`;
-  const sy=$('#sync'); sy.classList.toggle('harm',P.harmT>0); sy.classList.toggle('cool',P.harmCool>0&&P.harmT<=0);
-  const S=XF.STATES[st]; $('#state-name b').textContent=S.name; $('#state-name b').style.color=S.color; $('#state-name span').textContent=P.harmCool>0&&P.harmT<=0?`하모닉 재충전 ${P.harmCool.toFixed(0)}s`:S.sub;
+  $('#sync-val').textContent=P.harmT>0?`HARMONIC · 코어 과열 ${Math.round(P.core)}% · 신체 과부하 ${Math.round(P.body)}%`:`${Math.round(100-sv)} : ${Math.round(sv)}`;
+  const sy=$('#sync'); sy.classList.toggle('harm',P.harmT>0); sy.classList.toggle('cool',P.core>=XF.SYNC.REENTRY_HEAT&&P.harmT<=0);
+  // 표시부 과열: 흰색 → 붉은색
+  const hh=Math.min(1,P.core/100), tr=$('#sync-track');
+  if(hh>.01){ const r=255,gg=Math.round(244-200*hh),b=Math.round(255-215*hh); tr.style.borderColor=`rgb(${r},${gg},${b})`; tr.style.boxShadow=`0 0 ${10+18*hh}px rgba(255,${Math.round(230-190*hh)},${Math.round(255-210*hh)},${.35+.45*hh})`; }
+  else { tr.style.borderColor=''; tr.style.boxShadow=''; }
+  $('#heat-c').style.transform=`scaleX(${hh})`; $('#heat-b').style.transform=`scaleX(${Math.min(1,P.body/100)})`; $('#heat').classList.toggle('on',P.core>1||P.body>1);
+  const S=XF.STATES[st]; $('#state-name b').textContent=S.name; $('#state-name b').style.color=S.color; $('#state-name span').textContent=P.harmT<=0&&P.core>=XF.SYNC.REENTRY_HEAT?`코어 냉각 중 ${Math.round(P.core)}%`:S.sub;
   ['q','e'].forEach((k,i)=>{ const gh=$(i?'#sync-ghost2':'#sync-ghost'); const sd=XF.SKILLS[P.load[k]].side; const ok=P.harmT<=0&&P.cd[k]<=0;
     const gv=sv+(sd==='elf'?-1:1)*XF.SYNC.SKILL_SHIFT; gh.style.display=ok?'block':'none'; if(ok) gh.style.left=Math.max(0,Math.min(100,gv))+'%'; });
   // 스킬 슬롯
   const SK=XF.SKILLS;
   for(const k of ['q','e']){ const id=P.load[k], sk=SK[id]; slot(k,sk.name,sk.side,P.cd[k],sk.cd*(st==='harm'?.5:1));
-    const sid=G.stateSkillId(k); const hb=$('#sk-'+k+' .hold'); const ht=sid?('홀드: '+(sid==='orbitShot'?'룬 연쇄 발사':SK[sid].name)+(P.cd.st>0&&sid!=='orbitShot'?' '+P.cd.st.toFixed(0)+'s':'')):'';
+    const sid=G.stateSkillId(k); const hb=$('#sk-'+k+' .hold'); const SHORT={orbit:'룬 궤도',orbitShot:'룬 연쇄 발사',rush:'쇄도포',harmo:'하모닉 슬래시'}; const ht=sid?('홀드: '+SHORT[sid]+(P.cd.st>0&&sid!=='orbitShot'?' '+P.cd.st.toFixed(0)+'s':'')):'';
     if(hb._h!==ht){ hb.textContent=ht; hb._h=ht; } }
   slot('dash',null,null,P.cd.dash,XF.MOVES.dash.cd); slot('dodge',null,null,P.cd.dodge,.55);
   const rId=st==='harm'?'origin':P.load.r;

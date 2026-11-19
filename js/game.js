@@ -20,7 +20,7 @@ const P = G.player = {};
 G.rigs={};
 function resetPlayer(cid){
   Object.assign(P,{char:cid,x:0,y:0,z:-5,vx:0,vy:0,vz:0,yaw:Math.PI,hpMax:600,hp:600,
-    sync:50,lastSide:-1,load:Object.assign({},G.loadout),harmT:0,harmCool:0,ult:0,act:null,buf:null,combo:0,comboT:0,
+    sync:50,lastSide:-1,load:Object.assign({},G.loadout),harmT:0,core:0,body:0,afterT:0,ult:0,act:null,buf:null,combo:0,comboT:0,
     cd:{q:0,e:0,st:0,dash:0,dodge:0,swap:0},qHold:{q:-1,e:-1},iframe:0,stunT:0,hurtT:0,poison:0,grounded:true,phase:0,
     atkHeld:false,atkT:0,atkHeavy:false,orbitT:0,orbitA:0,orbitTick:0,ore:0,shards:0,
     up:{rune:0,astral:0,arm:0,nano:0},prevState:null,hits:0,hitT:0,checkpoint:[0,-5],pull:null,perfect:false,dead:false,superT:0,trail:[]});
@@ -41,12 +41,30 @@ function shiftSync(v,fromSkill){
   if(P.harmT>0||!v) return;
   P.sync=clamp(P.sync+v,0,100);
   // 하모닉 싱크로: 스킬로 게이지를 47~53 구간에 정확히 맞췄을 때 발동
-  if(fromSkill&&P.harmCool<=0&&P.sync>=SY.HARM_MIN&&P.sync<=SY.HARM_MAX){ P.harmT=SY.HARM_TIME; P.sync=50; A.play('harm');
+  if(fromSkill&&P.sync>=SY.HARM_MIN&&P.sync<=SY.HARM_MAX){
+    if(P.core>=SY.REENTRY_HEAT){ G.msg('코어 과열 — 하모닉 싱크로 불가 ('+Math.round(P.core)+'%)','#ff8a6b'); return; }
+    P.harmT=1; P.sync=50; A.play('harm');
     G.msg('하모닉 싱크로 — 50 : 50','#f4e9ff',true); burst(P.x,1,P.z,C_HARM,5,1.2); G.cam.shake=.4; }
 }
+/* 하모닉 해제: forced=과열 임계 강제 해제 (후유증은 누적 과열에 비례 — 구체 수치는 임시) */
+function endHarm(forced){
+  if(P.harmT<=0)return; const heat=P.core; P.harmT=0; P.sync=50+lean()*18;
+  if(forced){
+    P.afterT=3+7*heat/100; const loss=Math.round(P.hpMax*.12*heat/100); P.hp=Math.max(1,P.hp-loss); P.stunT=Math.max(P.stunT,.7);
+    A.play('overload'); G.msg('과열 임계 — 하모닉 싱크로 강제 해제','#ff4d5e',true); G.ui&&G.ui.glitch(1.2); G.cam.shake=.6;
+    for(let i=0;i<16;i++) spark(P.x,1.2,P.z,C_RED,6);
+  } else G.msg('하모닉 싱크로 해제','#cbb8ff');
+}
+G.endHarm=endHarm;
 function updateSync(dt){
-  if(P.harmT>0){ P.harmT-=dt; P.sync=50; if(P.harmT<=0){ P.harmT=0; P.sync=50+lean()*18; P.harmCool=10; G.msg('하모닉 싱크로 해제','#cbb8ff'); } }
-  else { P.harmCool=Math.max(0,P.harmCool-dt);
+  if(P.harmT>0){ P.sync=50;
+    // 신체 한계 ↔ 코어 한계: 서로를 가속
+    P.core=Math.min(100,P.core+SY.CORE_RATE*(1+P.body/100)*dt);
+    P.body=Math.min(100,P.body+SY.BODY_RATE*(1+P.core/100)*dt);
+    if(P.core>=100) endHarm(true); }
+  else { P.afterT=Math.max(0,P.afterT-dt);
+    P.core=Math.max(0,P.core-SY.CORE_COOL*(P.afterT>0?.5:1)*dt);
+    P.body=Math.max(0,P.body-(P.afterT>0?1.5:SY.BODY_COOL)*dt);
     // 조화 회복: 중앙 쪽으로 천천히 (하모닉 구간 바깥 경계까지만)
     if(P.sync<SY.HARM_MIN-.5) P.sync=Math.min(SY.HARM_MIN-.5,P.sync+SY.RECOVER*dt);
     else if(P.sync>SY.HARM_MAX+.5) P.sync=Math.max(SY.HARM_MAX+.5,P.sync-SY.RECOVER*dt); }
@@ -68,7 +86,7 @@ function overload(){
 
 /* ---- 피해 계산 ---- */
 function mult(kind){
-  const s=stateOf(); let m=1;
+  const s=stateOf(); let m=1-SY.DMG_LOSS*P.body/100;   // 신체 한계: 출력 저하
   if(kind==='phys') m*=1+.12*P.up.arm;
   if(kind==='elf'){ m*=1+.15*P.up.rune; if(s==='astral')m*=1.4; }
   if(kind==='cyber'){ m*=1+.15*P.up.nano; if(s==='neo')m*=1.4; }
@@ -86,6 +104,7 @@ function damageEnemy(e,base,o,nx,nz){
   e.hp-=d; e.flash=.1;
   if(G.settings.nums) G.nums.push({x:e.x+rand(-.3,.3),y:e.y+e.def.h+.2,z:e.z,t:0,txt:d,crit,c:tru?'#f4e9ff':o.kind==='elf'?'#7dffcf':o.kind==='cyber'?'#86c8ff':'#ffffff'});
   P.ult=Math.min(100,P.ult+(o.ult===undefined?1.4:o.ult));
+  if(P.harmT>0) P.body=Math.min(100,P.body+SY.BODY_PER_HIT);
   P.hits++; P.hitT=2.2; G.stats.maxCombo=Math.max(G.stats.maxCombo,P.hits);
   // 반응
   const heavyBody=e.type==='boss'||e.type==='elite';
@@ -293,7 +312,7 @@ const ACT = {
           [.5,a=>{ A.play('harm'); ring(P.x,.3,P.z,C_HARM,16,.8); for(const e of G.enemies){ if(e.dead||Math.hypot(e.x-P.x,e.z-P.z)>16)continue; e.frozen=3.4; a.list.push(e);} G.timeStop=2.8; }],
           [3.4,a=>{ A.play('boom'); G.cam.shake=1; G.fx.push({mesh:'box',x:P.x+Math.sin(P.yaw)*6,y:.1,z:P.z+Math.cos(P.yaw)*6,ry:P.yaw,s:1,sx:.6,sy:.2,sz:26,c:[1,1,1],a:1,life:.6,add:1});
              burst(P.x+Math.sin(P.yaw)*6,1,P.z+Math.cos(P.yaw)*6,C_HARM,8,.5);
-             for(const e of a.list) if(!e.dead) damageEnemy(e,XF.SKILLS.origin.dmg,{kind:'true',ult:0,hs:.15,shake:1,knock:5,poise:250}); }]]},
+             for(const e of a.list) if(!e.dead) damageEnemy(e,XF.SKILLS.origin.dmg,{kind:'true',ult:0,hs:.15,shake:1,knock:5,poise:250}); endHarm(false); }]]},
   swapIn:{dur:.4,cancel:.25,pose:t=>pose('heavyA','slashHorB',0,.2,t),tick:(a,dt)=>moveFwd(0,dt),
       ev:[[.12,a=>{ ring(P.x,.2,P.z,charCol(),4.5,.35); A.play('swing'); hitArc(P.x,P.z,0,4.5,Math.PI,32,{kind:'phys',set:new Set(),knock:4,ult:2}); }]]}
 };
@@ -346,7 +365,7 @@ function skill(k){
   const s=stateOf(); const id=P.load[k]; const sk=XF.SKILLS[id];
   if(P.cd[k]>0){ G.ui.denied(k); return; }
   let cd=sk.cd; if(sk.side==='cyber') cd*=1-.06*P.up.nano; if(s==='harm') cd*=.5;
-  P.cd[k]=cd; P.lastSide=sk.side==='elf'?-1:1; startAct(id);
+  P.cd[k]=cd; P.lastSide=sk.side==='elf'?-1:1; if(P.harmT>0) P.body=Math.min(100,P.body+SY.BODY_PER_SKILL); startAct(id);
 }
 G.stateSkillId=function(k){
   const s=stateOf(), side=XF.SKILLS[P.load[k]].side;
@@ -360,7 +379,7 @@ function stateSkill(k){
   if(!id){ skill(k); return; }
   if(id==='orbitShot'){ P.orbitT=0; startAct('orbitShot'); return; }
   if(P.cd.st>0){ G.ui.denied(k); return; }
-  P.cd.st=XF.SKILLS[id].cd; startAct(id);
+  P.cd.st=XF.SKILLS[id].cd; if(P.harmT>0) P.body=Math.min(100,P.body+SY.BODY_PER_SKILL); startAct(id);
 }
 function swapChar(){
   if(P.cd.swap>0||P.act&&ACT[P.act.type].ult){ G.ui.denied('swap'); return; }
@@ -635,7 +654,10 @@ function progress(dt){
 function purifyPillar(p){
   const s=stateOf(); p.purified=true; G.tele=G.tele.filter(t=>t.owner!==p);
   const name=s==='astral'?'룬 정화':s==='neo'?'나노 해킹':'룬 정화 + 나노 해킹';
-  G.msg('델리리움 기둥 — '+name,s==='astral'?'#3dffb0':s==='neo'?'#3fa9ff':'#f4e9ff');
+  G.msg(name+' — 오염 구조 제거 · 정상 에테르 회수',s==='astral'?'#3dffb0':s==='neo'?'#3fa9ff':'#f4e9ff');
+  // 회수한 정상 에테르 (회복량은 임시 수치)
+  P.hp=Math.min(P.hpMax,P.hp+P.hpMax*.05); P.ult=Math.min(100,P.ult+10);
+  for(let i=0;i<8;i++) G.fx.push({mesh:'sphere',x:p.x+rand(-.6,.6),y:rand(1,3.5),z:p.z+rand(-.6,.6),s:.25,s1:.05,c:[.85,1,.95],a:.9,life:.8,add:1,move:1,tx:P.x,ty:1.2,tz:P.z});
   if(s!=='neo'){ circleRune(p.x,p.z,2.2,C_ELF,1.2); A.play('elf'); } if(s!=='astral'){ for(let i=0;i<10;i++) spark(p.x,rand(.5,3),p.z,C_CY,4); A.play('cyber'); }
   for(let i=0;i<5;i++) G.picks.push({type:'ore',x:p.x,y:2,z:p.z,vy:rand(4,7),vx:rand(-3,3),vz:rand(-3,3),t:0});
   if(P.up.astral>0){ P.hp=Math.min(P.hpMax,P.hp+P.hpMax*.06*P.up.astral); }
@@ -663,7 +685,7 @@ function updatePicks(dt){
     if(k.t>.5&&d<.8){ k.got=1;
       if(k.type==='ore'){ P.ore++; A.play('pickup'); }
       if(k.type==='hp'){ P.hp=Math.min(P.hpMax,P.hp+P.hpMax*.1); A.play('pickup',.8); G.nums.push({x:P.x,y:P.y+2,z:P.z,t:0,txt:'+HP',c:'#7dffcf'}); }
-      if(k.type==='shard'){ P.shards++; A.play('shard'); G.msg('기억 조각 획득 ('+P.shards+'/3)','#f4e9ff',true); if(P.shards>=3) G.msg('게이트에서 기억을 복원할 수 있다','#cbb8ff'); } } }
+      if(k.type==='shard'){ P.shards++; A.play('shard'); G.msg('기억 조각 획득 ('+P.shards+'/3)','#f4e9ff',true); G.msg('아스텔리온의 의식 조각 — 기억의 잔향이 울린다','#cbb8ff'); if(P.shards>=3) G.msg('게이트에서 기억을 복원할 수 있다','#cbb8ff'); } } }
   G.picks=G.picks.filter(k=>!k.got);
 }
 
@@ -794,7 +816,8 @@ function render(dt){
     if(P.barrier){ const b=P.barrier, al=Math.min(1,b.t)*.8; R.drawTRS('ring',b.x,.1,b.z,0,t*.8,0,4.2,1,4.2,C_ELF,{add:1,a:al}); R.drawTRS('ringThin',b.x,.12,b.z,0,-t*1.5,0,3.2,1,3.2,C_ELF,{add:1,a:al});
       R.drawTRS('tube',b.x,1.2,b.z,0,0,0,8.4,2.4,8.4,C_ELF,{add:1,a:.06*al/.8}); for(let i=0;i<6;i++){ const a=t*.8+i/6*Math.PI*2; R.drawTRS('diamond',b.x+Math.cos(a)*4.2,1+Math.sin(t*3+i)*.3,b.z+Math.sin(a)*4.2,Math.PI/2,-a,0,.25,1,.25,C_ELF,{add:1,a:al}); }
       R.light(b.x,1.5,b.z,[.2,1,.6],7); }
-    if(P.harmT>0){ R.drawTRS('ringThin',P.x,.08,P.z,0,t*2,0,1.4,1,1.4,C_HARM,{add:1,a:.6}); R.light(P.x,2,P.z,[.9,.8,1],6); }
+    if(P.harmT>0){ const h=P.core/100, hc=[lerp(.95,1,h),lerp(.9,.25,h),lerp(1,.25,h)]; R.drawTRS('ringThin',P.x,.08,P.z,0,t*(2+h*6),0,1.4,1,1.4,hc,{add:1,a:.6}); R.light(P.x,2,P.z,hc,6);
+      if(h>.6&&Math.random()<h*.3) spark(P.x,rand(.5,2),P.z,C_RED,2); }
     else if(P.state==='neo'){ R.drawTRS('hex',P.x,1.1,P.z,0,t,0,1.5,2.2,1.5,C_CY,{add:1,a:.025}); }
   }
   // 적
