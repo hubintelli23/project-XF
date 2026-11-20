@@ -1,4 +1,5 @@
-/* XF 신스에테르0 — actors.js : 도형 조합 캐릭터 모델 & 절차적 애니메이션 */
+/* XF 신스에테르0 — actors.js : 공통 인체 리그 · 포즈 · 절차적 애니메이션
+ * (아바타 외형은 assets/avatars.js, 무기는 assets/weapons.js) */
 (function(){
 'use strict';
 const XF = window.XF = window.XF || {};
@@ -60,36 +61,13 @@ function humanoid(st){
   if(st.coat){ R.coat=hips.add(new N('boxT',st.cloth)).at(0,0,-.12).sc(st.w*.85,.62,.05).rot(.15,0,0);
     R.coat2=hips.add(new N('boxT',st.accent,{e:st.glow})).at(0,-.6,-.21).sc(st.w*.8,.02,.02).rot(.15,0,0); }
   if(st.robe){ R.robe=hips.add(new N('cone',st.cloth)).at(0,-.45,0).sc(st.w*1.6,1.0,st.w*1.4); }
-  // 무기
-  R.weapon=R.armR.hand.add(new N(null)).rot(Math.PI/2,0,0);
-  if(st.weapon==='blade'){
-    R.weapon.add(new N('box',st.metal)).at(0,-.06,0).sc(.05,.22,.05);
-    R.weapon.add(new N('box',st.metal)).at(0,.05,0).sc(.22,.04,.07);
-    R.bladeN=R.weapon.add(new N('blade',st.bladeC,{e:st.glow})).at(0,.06,0).sc(1.2,st.bladeLen,1);
-    R.weapon.add(new N('box',st.accent,{e:st.glow})).at(0,.5,0).sc(.02,st.bladeLen*.8,.012);
-  } else if(st.weapon==='scythe'){
-    R.weapon.add(new N('cyl',st.metal)).at(0,.4,0).sc(.05,st.scy*1.7,.05);
-    const hd=R.weapon.add(new N(null)).at(0,.4+st.scy*.85,0);
-    hd.add(new N('blade',st.bladeC,{e:st.glow})).rot(0,0,-1.75).sc(1.6,st.scy*.9,1);
-  } else if(st.weapon==='orb'){
-    R.weapon.add(new N('sphere',st.accent,{e:st.glow})).at(0,.12,0).sc(.22,.22,.22);
-  }
+  // 무기 (assets/weapons.js)
+  XF.buildWeapon(R,st.weapon);
   R.st=st; R.cur={}; return R;
 }
 
-const P = XF.Models = {};
-P.synthe=()=>humanoid({hip:.95,w:.36,limb:.95,skin:hex(0xf0dccf),skinArm:hex(0xe9d4c6),body:hex(0xdfe4ea),cloth:hex(0x2a3a3a),legC:hex(0x262b33),boot:hex(0x1c1f25),
-  accent:hex(0x3dffb0),glow:[.1,.9,.55],metal:hex(0x9aa3ad),bladeC:hex(0xc8fff0),bladeLen:1.05,hair:'long',hairC:hex(0xe8eef5),coat:1,chestPlate:1,weapon:'blade'});
-P.zero=()=>humanoid({hip:1.0,w:.44,limb:1.1,skin:hex(0xdcc2b0),skinArm:hex(0xd4b9a6),body:hex(0x22262d),cloth:hex(0x14171c),legC:hex(0x1d2026),boot:hex(0x101215),
-  accent:hex(0x3fa9ff),glow:[.15,.55,1],metal:hex(0x4b5563),bladeC:hex(0xbfe0ff),bladeLen:1.2,hair:'short',hairC:hex(0x1a1c22),coat:1,mechR:1,chestPlate:1,weapon:'blade'});
-P.husk=()=>humanoid({hip:.9,w:.4,limb:1,skin:hex(0x2a2730),skinArm:hex(0x2a2730),body:hex(0x221f27),cloth:hex(0x17151b),legC:hex(0x1c1a21),boot:hex(0x111),
-  accent:hex(0x7a6bff),glow:[.35,.3,1],metal:hex(0x3a3540),bladeC:hex(0x6b5cff),hair:'hood',weapon:'scythe',scy:.7});
-P.chainer=()=>humanoid({hip:1.1,w:.36,limb:.9,skin:hex(0x2c2a33),skinArm:hex(0x2c2a33),body:hex(0x26232c),cloth:hex(0x1b1820),legC:hex(0x1b1820),boot:hex(0x111),
-  accent:hex(0x5ab0ff),glow:[.2,.5,1],metal:hex(0x3a3540),bladeC:hex(0x6b5cff),hair:'hood',robe:1,weapon:'orb'});
-P.elite=()=>humanoid({hip:1.25,w:.62,limb:1.35,skin:hex(0x2a2530),skinArm:hex(0x2a2530),body:hex(0x1f1b24),cloth:hex(0x141118),legC:hex(0x19161d),boot:hex(0x0e0e0e),
-  accent:hex(0xa064ff),glow:[.55,.25,1],metal:hex(0x403848),bladeC:hex(0x8a5cff),hair:'hood',weapon:'scythe',scy:1.1,chestPlate:1});
-P.boss=()=>humanoid({hip:1.2,w:.46,limb:1.1,skin:hex(0xc9c0d8),skinArm:hex(0xc9c0d8),body:hex(0x1a1520),cloth:hex(0x120e17),legC:hex(0x16121b),boot:hex(0x0d0b10),
-  accent:hex(0xb070ff),glow:[.6,.3,1],metal:hex(0x2d2635),bladeC:hex(0x9a6bff),hair:'crown',hairC:hex(0x2b2236),robe:1,weapon:'scythe',scy:1.35,chestPlate:1});
+XF.buildHumanoid=humanoid;
+const P = XF.Models = XF.Models || {};
 
 /* ---------- 포즈 ---------- */
 // pose 키: sp(척추 Y비틀기) lean(척추 X) aLx aLz eLx aRx aRz eRx lLx kLx lRx kRx y(엉덩이 높이 오프셋) roll wR(무기 비틀기)

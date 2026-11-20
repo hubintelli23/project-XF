@@ -162,7 +162,7 @@ U.frame=function(dt){
   let stt=''; if(P.poison>0) stt+=`<span style="color:#9a8cff">델리리움 중독 ${P.poison.toFixed(0)}s</span>`; if(P.fog>.85) stt+=`<span style="color:#7fa0ff">시스템 오류</span>`;
   if(P.orbitT>0) stt+=`<span style="color:var(--elf)">룬 궤도 ${P.orbitT.toFixed(0)}s</span>`; if(P.stunT>0) stt+=`<span style="color:#ff6b7d">과부하 경직</span>`;
   if(st==='neo') stt+=`<span style="color:var(--cy)">슈퍼아머</span>`;
-  if(P.body>=1) stt+=`<span style="color:#ff9a7a">출력 저하 -${Math.round(XF.SYNC.DMG_LOSS*P.body)}%</span>`;
+  { const ol=Math.round(G.outputLoss()*100); if(ol>=1) stt+=`<span style="color:#ff9a7a">출력 저하 -${ol}%</span>`; else if(P.body>=1) stt+=`<span style="color:#ffcf9a">신체 부하 ${Math.round(P.body)}% (구동율 ${XF.SYNC.BODY_SAFE}% 초과 시 출력 저하)</span>`; }
   if(P.afterT>0) stt+=`<span style="color:#ff4d5e">과열 후유증 ${P.afterT.toFixed(0)}s</span>`;
   const sEl=$('#status'); if(sEl._h!==stt){ sEl.innerHTML=stt; sEl._h=stt; }
   // 목표

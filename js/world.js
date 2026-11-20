@@ -1,8 +1,10 @@
-/* XF 신스에테르0 — world.js : 제1지역 「잊혀진 실험동 (The Silent Lab)」 */
+/* XF 신스에테르0 — world.js : 제1지역 「잊혀진 실험동」 배치 · 충돌 (게임 규칙)
+ * 겉모습(바닥·벽·소품·조명·안개 색)은 assets/background.js
+ * 소품을 놓으려면 W.props 에 {type, x, z, ...} 추가 — 충돌 크기는 W.COLLIDERS, 모양은 background.js 의 XF.BG.PROPS
+ */
 (function(){
 'use strict';
 const XF = window.XF = window.XF || {};
-const hex=XF.hex;
 
 const W = XF.World = {};
 // 걸을 수 있는 영역 (x0,z0,x1,z1) — 겹치는 곳이 통로
@@ -19,28 +21,49 @@ W.rects = [
 ];
 W.gateZ = -134;          // 기억 복원 게이트
 W.gateOpen = false;
-W.obstacles = [];        // {x0,z0,x1,z1,h}
-W.statics = [];          // 정적 그리기 목록
-W.deco = [];             // 발광 장식
+W.WALL = {h:7, t:.8};    // 벽 높이·두께
 
+// 소품 배치
+W.props = [
+  // 각성 캡슐실
+  {type:'capsule', x:0, z:3},
+  {type:'console', x:-6, z:-6}, {type:'console', x:6, z:-6}, {type:'console', x:-6, z:2}, {type:'console', x:6, z:2},
+  // 실험동 A
+  {type:'tank', x:-11, z:-30, broken:false}, {type:'tank', x:11, z:-30, broken:false}, {type:'tank', x:-11, z:-47, broken:false}, {type:'tank', x:11, z:-47, broken:true},
+  {type:'debris', x:-5, z:-38, w:2.2, d:1.4, h:1.2}, {type:'debris', x:6, z:-42, w:1.6, d:3, h:1}, {type:'debris', x:-9, z:-40, w:1.2, d:1.2, h:2.2}, {type:'debris', x:9, z:-36, w:1.4, d:1.4, h:.8},
+  {type:'cables', x:-16, z0:-25, z1:-52}, {type:'cables', x:16, z0:-25, z1:-52},
+  // 정비실
+  {type:'workbench', x:0, z:-75.5}, {type:'locker', x:-6.5, z:-70}, {type:'locker', x:6.5, z:-70}, {type:'station', x:0, z:-70},
+  // 침식 구역 B
+  {type:'tank', x:-15, z:-96, broken:true}, {type:'tank', x:15, z:-96, broken:true}, {type:'tank', x:-15, z:-123, broken:true}, {type:'tank', x:15, z:-123, broken:true},
+  {type:'debris', x:-8, z:-102, w:2, d:2, h:1.5}, {type:'debris', x:8, z:-117, w:3, d:1.4, h:1}, {type:'debris', x:-3, z:-121, w:1.4, d:1.4, h:2.4},
+  {type:'debris', x:11, z:-105, w:1.2, d:2.4, h:1.2}, {type:'debris', x:-12, z:-112, w:2.6, d:1.2, h:.9},
+  {type:'cables', x:-20, z0:-91, z1:-128}, {type:'cables', x:20, z0:-91, z1:-128},
+  // 게이트 · 보스 아레나
+  {type:'gate', x:0, z:-134},
+  {type:'arena', x:0, z:-160}
+];
+for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; W.props.push({type:'arenaPillar', x:Math.cos(a)*16.5, z:-160+Math.sin(a)*16.5, h:i%3===0?3:6.5}); }
+
+// 소품 충돌 크기 (w·d 너비, h 높이 — 이보다 높이 점프하면 위로 지나감)
+W.COLLIDERS = {
+  capsule:{w:2.6,d:2.6,h:3}, console:{w:1.4,d:1,h:2}, tank:{w:2.4,d:2.4,h:3},
+  debris:p=>({w:p.w,d:p.d,h:p.h}), workbench:{w:6,d:1.4,h:1.2}, locker:{w:1,d:3,h:3},
+  arenaPillar:p=>({w:1.3,d:1.3,h:p.h})
+};
+
+W.obstacles = [];        // {x0,z0,x1,z1,h}
 W.roomAt=function(x,z){ for(const r of W.rects) if(r.name && x>=r.x0&&x<=r.x1&&z>=r.z0&&z<=r.z1) return r; return null; };
 W.fogAt=function(x,z){ // 델리리움 안개 농도 0..1
   let f=0; if(z<-88&&z>-130) f=1-Math.min(1,Math.abs(z+109)/24)*.4;
   if(z<-135) f=.45; return XF.clamp(f,0,1);
 };
 
-function S(mesh,x,y,z,sx,sy,sz,c,o,ry){ W.statics.push({mesh,x,y,z,sx,sy,sz,c:Array.isArray(c)?c:hex(c),o:o||{},ry:ry||0}); }
-function obstacle(x,z,w,d,h){ W.obstacles.push({x0:x-w/2,z0:z-d/2,x1:x+w/2,z1:z+d/2,h:h||2}); }
-
 W.build=function(){
-  W.statics.length=0; W.obstacles.length=0; W.deco.length=0;
-  const wallH=7, wt=.8;
-  const gray=v=>[v,v,v*1.05];
-  // 바닥
-  for(const r of W.rects){
-    const w=r.x1-r.x0, d=r.z1-r.z0;
-    S('box',(r.x0+r.x1)/2,-.25,(r.z0+r.z1)/2,w,.5,d,gray(.34),{floor:1});
-  }
+  W.obstacles.length=0;
+  for(const p of W.props){ let c=W.COLLIDERS[p.type]; if(!c)continue; if(typeof c==='function') c=c(p);
+    W.obstacles.push({x0:p.x-c.w/2,z0:p.z-c.d/2,x1:p.x+c.w/2,z1:p.z+c.d/2,h:c.h}); }
+  const wt=W.WALL.t;
   // 벽: 각 사각형의 변 중 다른 사각형과 겹치지 않는 구간만
   const segs=[];
   for(const r of W.rects){
@@ -60,80 +83,9 @@ W.build=function(){
     }
   }
   W.wallSegs=segs;
-  for(const s of segs){
-    const len=s.b-s.a+wt, mid=(s.a+s.b)/2;
-    if(s.ax==='z'){ S('box',mid,wallH/2,s.v,len,wallH,wt,gray(.25));
-      // 벽 패널 & 발광 띠
-      for(let x=s.a+2;x<s.b-1;x+=4){ S('box',x,wallH/2,s.v-s.out*.42,.35,wallH,.12,gray(.2)); }
-      S('box',mid,1.1,s.v-s.out*.42,len-.4,.06,.05,[.1,.25,.4],{e:[.15,.45,.8]});
-    } else { S('box',s.v,wallH/2,mid,wt,wallH,len,gray(.25));
-      for(let z=s.a+2;z<s.b-1;z+=4){ S('box',s.v-s.out*.42,wallH/2,z,.12,wallH,.35,gray(.2)); }
-      S('box',s.v-s.out*.42,1.1,mid,.05,.06,len-.4,[.1,.25,.4],{e:[.15,.45,.8]});
-    }
-  }
-  // 각성 캡슐실 R0
-  S('cyl',0,.2,3,3.2,.4,3.2,gray(.22)); S('tube',0,1.6,3,2.2,2.6,2.2,[.4,.8,1],{a:.18});
-  S('cyl',0,3.1,3,2.6,.5,2.6,gray(.2)); W.deco.push({type:'capsule',x:0,y:1.5,z:3});
-  obstacle(0,3,2.6,2.6,3);
-  for(const [x,z] of [[-6,-6],[6,-6],[-6,2],[6,2]]){ S('box',x,1,z,1.4,2,1,gray(.27)); S('box',x,1.6,z+.51,1,.5,.02,[.1,.3,.5],{e:[.1,.5,.9]}); obstacle(x,z,1.4,1,2); }
-  // 실험동 A R1: 깨진 배양조, 잔해
-  for(const [x,z] of [[-11,-30],[11,-30],[-11,-47],[11,-47]]){ tank(x,z,(x+z)%3===0); }
-  for(const [x,z,w,d,h] of [[-5,-38,2.2,1.4,1.2],[6,-42,1.6,3,1],[-9,-40,1.2,1.2,2.2],[9,-36,1.4,1.4,.8]]){ debris(x,z,w,d,h); }
-  cables(-16,-25,-52); cables(16,-25,-52);
-  // 정비실 R2: 작업대, 홀로그램 단말
-  S('box',0,.6,-75.5,6,1.2,1.4,gray(.3)); obstacle(0,-75.5,6,1.4,1.2);
-  S('box',-6.5,1.5,-70,1,3,3,gray(.26)); obstacle(-6.5,-70,1,3,3);
-  S('box',6.5,1.5,-70,1,3,3,gray(.26)); obstacle(6.5,-70,1,3,3);
-  S('hex',0,.08,-70,5,.16,5,[.12,.2,.25],{e:[.03,.12,.12]});
-  W.deco.push({type:'station',x:0,y:0,z:-70});
-  // 침식 구역 B R3
-  for(const [x,z] of [[-15,-96],[15,-96],[-15,-123],[15,-123],[0,-110]]){ if(x===0)continue; tank(x,z,true); }
-  for(const [x,z,w,d,h] of [[-8,-102,2,2,1.5],[8,-117,3,1.4,1],[-3,-121,1.4,1.4,2.4],[11,-105,1.2,2.4,1.2],[-12,-112,2.6,1.2,.9]]){ debris(x,z,w,d,h); }
-  cables(-20,-91,-128); cables(20,-91,-128);
-  // 게이트
-  W.deco.push({type:'gate',x:0,y:0,z:W.gateZ});
-  // 보스 아레나 R4: 원형 단, 부서진 기둥
-  S('cyl',0,.04,-160,30,.08,30,gray(.29),{floor:1});
-  S('ring',0,.1,-160,14,1,14,[.35,.4,.9],{add:1,a:.16});
-  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2, x=Math.cos(a)*16.5, z=-160+Math.sin(a)*16.5; const h=i%3===0?3:6.5;
-    S('cyl',x,h/2,z,1.6,h,1.6,gray(.27)); obstacle(x,z,1.3,1.3,h); }
+  if(XF.BG) XF.BG.build(W);
 };
-function tank(x,z,broken){
-  S('cyl',x,.3,z,2.6,.6,2.6,[.24,.24,.26]);
-  if(broken){ S('tube',x,1.1,z,2.2,1.2,2.2,[.4,.6,.9],{a:.2}); S('cone',x+.5,1.6,z,.4,.8,.4,[.5,.7,.9],{a:.3}); }
-  else { S('tube',x,2,z,2.2,3,2.2,[.4,.6,.9],{a:.18}); S('cyl',x,3.6,z,2.6,.4,2.6,[.22,.22,.24]); W.deco.push({type:'tankglow',x,y:1.8,z}); }
-  W.obstacles.push({x0:x-1.2,z0:z-1.2,x1:x+1.2,z1:z+1.2,h:3});
-}
-function debris(x,z,w,d,h){ S('box',x,h/2,z,w,h,d,[.3,.3,.31],{},(x*7+z)%1.2); W.obstacles.push({x0:x-w/2,z0:z-d/2,x1:x+w/2,z1:z+d/2,h}); }
-function cables(x,z0,z1){ const s=x>0?-1:1; for(let z=z0-3;z>z1+2;z-=7){ S('cyl',x+s*.6,.12,z-1.5,.25,.25,.25,[.15,.15,.16]); S('box',x+s*1.2,.1,z-3,.18,.18,5,[.12,.12,.13],{},.3*s); } }
-
-W.draw=function(R,t,player){
-  const px=player?player.x:0,pz=player?player.z:0;
-  for(const s of W.statics){
-    if(Math.abs(s.z-pz)>75 && s.sz<30) continue; // 간단한 거리 컬링
-    R.drawTRS(s.mesh,s.x,s.y,s.z,0,s.ry,0,s.sx,s.sy,s.sz,s.c,s.o);
-  }
-  for(const d of W.deco){
-    if(Math.abs(d.z-pz)>80)continue;
-    if(d.type==='capsule'){ const p=.5+.5*Math.sin(t*2); R.drawTRS('cyl',d.x,d.y,d.z,0,0,0,1.6,2.4,1.6,[.3,.7,1],{add:1,a:.12+.08*p}); R.light(d.x,2,d.z,[.3,.6,1],9); }
-    else if(d.type==='tankglow'){ R.drawTRS('sphere',d.x,d.y+Math.sin(t+d.x)*.2,d.z,0,0,0,.8,.8,.8,[.2,.35,.9],{add:1,a:.5}); R.light(d.x,2,d.z,[.25,.35,1],7); }
-    else if(d.type==='station'){
-      R.light(-3,2.5,-70,[.2,1,.7],9); R.light(3,2.5,-70,[.25,.6,1],9);
-      R.drawTRS('ring',0,.2,-70,0,0,0,2.4,1,2.4,[.3,1,.8],{add:1,a:.4});
-      R.drawTRS('ringThin',0,.25+Math.sin(t*2)*.05,-70,0,0,0,3.2,1,3.2,[.3,.7,1],{add:1,a:.5});
-      for(let i=0;i<6;i++){ const a=t*.6+i/6*Math.PI*2; R.drawTRS('diamond',Math.cos(a)*2.8,1.6+Math.sin(t*2+i)*.2,-70+Math.sin(a)*2.8,Math.PI/2,-a,0,.18,1,.18,i%2?[.3,1,.75]:[.35,.65,1],{add:1,a:.8}); }
-    }
-    else if(d.type==='gate'){
-      const open=W.gateOpen; const k=open?Math.min(1,(W.gateT||0)):0;
-      for(const s of [-1,1]){ R.drawTRS('box',s*(1.6+k*2.6),3.5,d.z,0,0,0,3.2,7,.6,[.22,.23,.26]);
-        R.drawTRS('box',s*(1.6+k*2.6),3.5,d.z+.32,0,0,0,.12,6.6,.05,[.3,.4,1],{e:open?[.1,.6,.4]:[.6,.2,.9]}); }
-      if(!open){ R.drawTRS('quad',0,3.5,d.z+.4,Math.PI/2,0,0,6,1,7,[.5,.3,1],{add:1,a:.12+.05*Math.sin(t*3)}); }
-      R.light(0,3,d.z+2,open?[.2,1,.6]:[.6,.25,1],8);
-    }
-  }
-  // 벽 상단 은은한 안개 경계 조명
-  R.light(0,4,-38,[.15,.2,.35],18); R.light(0,4,-110,[.2,.25,.6],22); R.light(0,5,-160,[.35,.25,.7],24);
-};
+W.draw=function(R,t,player){ if(XF.BG) XF.BG.draw(R,t,player); };
 
 /* 원(x,z,r)을 걸을 수 있는 영역 안으로 & 장애물 밖으로 */
 W.collide=function(p,r,ignoreGate){
