@@ -848,7 +848,8 @@ function render(dt){
     R.ovr=e.flash>0?{c:[1,1,1],o:{e:[.8,.8,.9]}}:e.frozen>0?{c:[.75,.75,.95],o:{e:[.2,.2,.35]}}:e.dead?{c:null,o:{a:k,e:[.2,.1,.4]}}:null;
     e.rig.root.p=[e.x,e.y,e.z]; e.rig.root.r=[0,e.yaw,0];
     if(e.type==='boss'&&!e.dead) { const sc=1.25; e.rig.root.s=[sc,sc,sc]; }
-    e.rig.root.render(R); R.ovr=null;
+    { const cp=G.cam.pos||[0,0,0]; R.lowDetail=Math.hypot(e.x-cp[0],e.z-cp[2])>(XF.Input.touch?14:22); }
+    e.rig.root.render(R); R.ovr=null; R.lowDetail=false;
     if(!e.dead){ shadow(e.x,e.z,e.def.r*1.3,.45); if(e.guardBreak>0) R.drawTRS('ringThin',e.x,e.y+e.def.h+.3,e.z,0,t*4,0,.5,1,.5,C_CY,{add:1,a:.8});
       if(e.resistDown>0) R.drawTRS('diamond',e.x,e.y+e.def.h+.5,e.z,Math.PI/2,t*3,0,.18,1,.18,C_ELF,{add:1,a:.9});
       if(e.broken>0) R.drawTRS('ring',e.x,e.y+e.def.h+.6,e.z,0,t*5,0,.7,1,.7,[1,.85,.3],{add:1,a:.8});

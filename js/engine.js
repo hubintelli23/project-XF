@@ -47,7 +47,7 @@ XF.hex=(h)=>[((h>>16)&255)/255,((h>>8)&255)/255,(h&255)/255];
 const VS=`attribute vec3 aP;attribute vec3 aN;uniform mat4 uVP;uniform mat4 uM;varying vec3 vN;varying vec3 vW;
 void main(){vec4 w=uM*vec4(aP,1.);vW=w.xyz;vN=normalize(mat3(uM)*aN);gl_Position=uVP*w;}`;
 const FS=`precision mediump float;varying vec3 vN;varying vec3 vW;
-uniform vec3 uC;uniform vec3 uE;uniform float uA;uniform float uUnlit;uniform float uFloor;
+uniform vec3 uC;uniform vec3 uE;uniform float uA;uniform float uUnlit;uniform float uFloor;uniform float uSpec;
 uniform vec3 uFogC;uniform float uFogD;uniform vec3 uL;uniform vec3 uCam;uniform float uTime;
 uniform vec3 uPLp[8];uniform vec3 uPLc[8];uniform float uPLr[8];
 void main(){
@@ -58,11 +58,12 @@ void main(){
   vec3 base=uC;
   if(uFloor>.5){vec2 g=abs(fract(vW.xz/2.)-.5);float line=step(.47,max(g.x,g.y));base*=1.-line*.35;
     float h=fract(sin(dot(floor(vW.xz/2.),vec2(12.9898,78.233)))*43758.5);base*=.88+h*.18;}
-  float ndl=max(dot(n,normalize(uL)),0.);
+  vec3 L=normalize(uL);float ndl=max(dot(n,L),0.);vec3 vv=normalize(uCam-vW);
   vec3 hemi=mix(vec3(.16,.17,.2),vec3(.42,.45,.52),n.y*.5+.5);
   col=base*(hemi+ndl*vec3(.62,.64,.7));
   for(int i=0;i<8;i++){vec3 d=uPLp[i]-vW;float l=length(d);float r=uPLr[i];if(r>0.){float at=max(1.-l/r,0.);at*=at;col+=base*uPLc[i]*at*max(dot(n,d/l),0.)*1.6+uPLc[i]*at*.05;}}
-  vec3 v=normalize(uCam-vW);float rim=pow(1.-max(dot(n,v),0.),3.);col+=rim*.18*vec3(.5,.65,.9);
+  float rim=pow(1.-max(dot(n,vv),0.),3.);col+=rim*.2*vec3(.5,.65,.9);
+  vec3 hv=normalize(L+vv);col+=pow(max(dot(n,hv),0.),36.)*uSpec*vec3(.95,.97,1.)*(.4+ndl);
   col+=uE;
  }
  float dist=length(uCam-vW);float f=1.-exp(-pow(dist*uFogD,2.));
@@ -83,7 +84,7 @@ class Renderer{
     gl.useProgram(p);
     this.aP=gl.getAttribLocation(p,'aP');this.aN=gl.getAttribLocation(p,'aN');
     gl.enableVertexAttribArray(this.aP);gl.enableVertexAttribArray(this.aN);
-    this.u={};['uVP','uM','uC','uE','uA','uUnlit','uFloor','uFogC','uFogD','uL','uCam','uTime'].forEach(n=>this.u[n]=gl.getUniformLocation(p,n));
+    this.u={};['uVP','uM','uC','uE','uA','uUnlit','uFloor','uSpec','uFogC','uFogD','uL','uCam','uTime'].forEach(n=>this.u[n]=gl.getUniformLocation(p,n));
     this.u.uPLp=gl.getUniformLocation(p,'uPLp');this.u.uPLc=gl.getUniformLocation(p,'uPLc');this.u.uPLr=gl.getUniformLocation(p,'uPLr');
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
     this.meshes={};this.queue=[];this.pool=[];this.poolI=0;
@@ -149,7 +150,7 @@ class Renderer{
     gl.bindBuffer(gl.ARRAY_BUFFER,m.nb);gl.vertexAttribPointer(this.aN,3,gl.FLOAT,false,0,0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);
     gl.uniformMatrix4fv(u.uM,false,q.M);gl.uniform3fv(u.uC,q.c);gl.uniform3fv(u.uE,o.e||ZERO);
-    gl.uniform1f(u.uA,o.a===undefined?1:o.a);gl.uniform1f(u.uUnlit,o.unlit||o.add?1:0);gl.uniform1f(u.uFloor,o.floor?1:0);
+    gl.uniform1f(u.uA,o.a===undefined?1:o.a);gl.uniform1f(u.uUnlit,o.unlit||o.add?1:0);gl.uniform1f(u.uFloor,o.floor?1:0);gl.uniform1f(u.uSpec,o.spec!==undefined?o.spec:.12);
     gl.drawElements(gl.TRIANGLES,m.n,gl.UNSIGNED_SHORT,0);
   }
 }
@@ -178,10 +179,34 @@ function buildPrimitives(R){
   R.addMesh('limb',...cyl(8,.42,.5,true,-.5));
   R.addMesh('hex',...cyl(6,.5,.5,true,0));
   // sphere
-  {const P=[],N=[],I=[];const st=10,sl=14;
+  {const P=[],N=[],I=[];const st=16,sl=24;
    for(let i=0;i<=st;i++){const v=i/st*Math.PI;for(let j=0;j<=sl;j++){const u=j/sl*Math.PI*2;const x=Math.sin(v)*Math.cos(u),y=Math.cos(v),z=Math.sin(v)*Math.sin(u);P.push(x*.5,y*.5,z*.5);N.push(x,y,z);}}
    for(let i=0;i<st;i++)for(let j=0;j<sl;j++){const a=i*(sl+1)+j,b=a+sl+1;I.push(a,b,a+1,b,b+1,a+1);}
    R.addMesh('sphere',P,N,I);}
+  // 캡슐: 가로 반지름 .5, y 0 → -1 (위 피벗), 끝 둥근 부분 높이 .16 — 둥근 팔다리
+  {const P=[],N=[],I=[];const sl=14,hs=4,r=.5,ch=.16;const ring=[];
+   for(let i=0;i<=hs;i++){const a=Math.PI/2*i/hs;ring.push([Math.sin(a)*r,-ch+Math.cos(a)*ch,Math.cos(a)]);}
+   for(let i=hs;i>=0;i--){const a=Math.PI/2*i/hs;ring.push([Math.sin(a)*r,-1+ch-Math.cos(a)*ch,-Math.cos(a)]);}
+   for(const q of ring){const nr=Math.sqrt(Math.max(0,1-q[2]*q[2]));
+     for(let j=0;j<=sl;j++){const u=j/sl*Math.PI*2,c=Math.cos(u),sn=Math.sin(u);P.push(c*q[0],q[1],sn*q[0]);N.push(c*nr,q[2],sn*nr);}}
+   for(let k=0;k<ring.length-1;k++)for(let j=0;j<sl;j++){const a=k*(sl+1)+j,b=a+sl+1;I.push(a,b,a+1,b,b+1,a+1);}
+   R.addMesh('capsT',P,N,I);}
+  // 테이퍼 상자 (아래 폭 = 위 폭 × k), 중심 기준 y -.5..5
+  const taper=(k,kz)=>{const P=[],N=[],I=[];const t=.5,bx=.5*k,bz=.5*(kz||k);
+    const v=[[-t,.5,-t],[t,.5,-t],[t,.5,t],[-t,.5,t],[-bx,-.5,-bz],[bx,-.5,-bz],[bx,-.5,bz],[-bx,-.5,bz]];
+    const faces=[[3,2,6,7],[1,0,4,5],[2,1,5,6],[0,3,7,4],[0,1,2,3],[7,6,5,4]];
+    for(const f of faces){const a=v[f[0]],b=v[f[1]],c=v[f[2]];const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],wx=c[0]-a[0],wy=c[1]-a[1],wz=c[2]-a[2];
+      let nx=uy*wz-uz*wy,ny=uz*wx-ux*wz,nz=ux*wy-uy*wx;const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;const o=P.length/3;
+      for(const i of f){P.push(...v[i]);N.push(nx,ny,nz);} I.push(o,o+1,o+2,o,o+2,o+3);}
+    return [P,N,I];};
+  R.addMesh('taper',...taper(.72,.85));   // 가슴·골반 (아래가 좁음)
+  R.addMesh('taperW',...taper(1.25,1.1)); // 아래가 넓음 (치마·망토)
+  R.addMesh('boot',...taper(.9,1.3));
+  // 머리카락 가닥: 위 피벗, 끝이 뾰족한 얇은 판
+  {const P=[0-.5,0,.0, .5,0,0, .08,-1,.04, -.08,-1,.04, -.5,0,-.08, .5,0,-.08, .08,-1,-.02, -.08,-1,-.02];
+   const I=[0,1,2,0,2,3, 5,4,7,5,7,6, 0,3,7,0,7,4, 1,5,6,1,6,2, 0,4,5,0,5,1];
+   const N=[0,.1,1, 0,.1,1, 0,.1,1, 0,.1,1, 0,.1,-1, 0,.1,-1, 0,.1,-1, 0,.1,-1];R.addMesh('strand',P,N,I);}
+  R.addMesh('limbS',...cyl(12,.4,.5,true,-.5));
   // 평면 도형 (XZ, 법선 +Y)
   const flat=(fn)=>{const P=[],N=[],I=[];fn(P,I);for(let i=0;i<P.length/3;i++)N.push(0,1,0);return [P,N,I];};
   const annulus=(ri,ro,a0,a1,seg)=>flat((P,I)=>{for(let i=0;i<=seg;i++){const a=a0+(a1-a0)*i/seg,c=Math.cos(a),s=Math.sin(a);P.push(c*ri,0,s*ri,c*ro,0,s*ro);}
@@ -205,9 +230,9 @@ XF.Renderer=Renderer;
 class Node{
   constructor(mesh,color,o){this.mesh=mesh;this.c=color;this.o=o||{};this.p=[0,0,0];this.r=[0,0,0];this.s=[1,1,1];this.kids=[];this.vis=true;this.M=m4.create();}
   add(n){this.kids.push(n);return n;}
-  at(x,y,z){this.p=[x,y,z];return this;} sc(x,y,z){this.s=[x,y,z];return this;} rot(x,y,z){this.r=[x,y,z];return this;}
+  at(x,y,z){this.p=[x,y,z];return this;} d(){this.detail=1;return this;} sc(x,y,z){this.s=[x,y,z];return this;} rot(x,y,z){this.r=[x,y,z];return this;}
   render(R,parent){
-    if(!this.vis)return;
+    if(!this.vis||(this.detail&&R.lowDetail))return;
     const gs=this.mesh?1:0;const L=m4.trs(R.mat(),this.p[0],this.p[1],this.p[2],this.r[0],this.r[1],this.r[2],gs?1:this.s[0],gs?1:this.s[1],gs?1:this.s[2]);
     const W=parent?m4.mul(R.mat(),parent,L):L;
     if(this.mesh){const S=m4.mul(R.mat(),W,m4.trs(R.mat(),0,0,0,0,0,0,this.s[0],this.s[1],this.s[2]));R.draw(this.mesh,S,this.c,this.o);this.M.set(S);}

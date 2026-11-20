@@ -22,20 +22,33 @@ XF.WEAPONS = {
 };
 
 /* 무기 모양 (node = 손에 붙은 무기 루트, +Y 방향이 무기 끝) */
+const M={spec:.8}, G={spec:.5};
 XF.WeaponKinds = {
   blade(node,w,R){
-    node.add(new N('box',hex(w.metal))).at(0,-.06,0).sc(.05,.22,.05);                 // 손잡이
-    node.add(new N('box',hex(w.metal))).at(0,.05,0).sc(.22,.04,.07);                  // 코등이
-    R.bladeN=node.add(new N('blade',hex(w.blade),{e:w.glow})).at(0,.06,0).sc(1.2,w.len,1); // 칼날
-    node.add(new N('box',hex(w.accent),{e:w.glow})).at(0,.5,0).sc(.02,w.len*.8,.012); // 발광 홈
+    node.add(new N('limbS',hex(w.metal),M)).at(0,0,0).sc(.045,.2,.045);                          // 손잡이
+    node.add(new N('sphere',hex(w.metal),M)).at(0,-.11,0).sc(.06,.06,.06).d();                    // 손잡이 끝
+    node.add(new N('box',[.1,.1,.12],G)).at(0,-.05,0).sc(.05,.14,.05).d();                        // 그립 감개
+    node.add(new N('taper',hex(w.metal),M)).at(0,.05,0).sc(.26,.05,.08).rot(Math.PI,0,0);          // 코등이
+    node.add(new N('hex',hex(w.accent),{e:w.glow,spec:.4})).at(0,.05,.045).rot(Math.PI/2,0,0).sc(.04,.01,.04).d(); // 코등이 코어
+    R.bladeN=node.add(new N('blade',hex(w.blade),{e:[w.glow[0]*.12,w.glow[1]*.12,w.glow[2]*.12],spec:.9})).at(0,.07,0).sc(.72,w.len,1.1); // 칼날
+    node.add(new N('box',hex(w.accent),{e:w.glow})).at(0,.09+w.len*.42,0).sc(.016,w.len*.72,.014);   // 발광 홈
+    for(const s of [-1,1]) node.add(new N('box',hex(w.metal),M)).at(s*.07,.12,0).sc(.03,.1,.03).rot(0,0,s*.35).d(); // 가변 기구
   },
   scythe(node,w,R){
-    node.add(new N('cyl',hex(w.metal))).at(0,.4,0).sc(.05,w.len*1.7,.05);             // 자루
+    node.add(new N('limbS',hex(w.metal),M)).at(0,.4+w.len*.85,0).sc(.045,w.len*1.7,.045);         // 자루 (위 피벗이라 위로 올려 둠)
+    for(let i=0;i<3;i++) node.add(new N('ringThin',hex(w.blade),{e:w.glow})).at(0,.1+i*w.len*.55,0).sc(.06,1,.06).d(); // 자루 고리
     const hd=node.add(new N(null)).at(0,.4+w.len*.85,0);
-    R.bladeN=hd.add(new N('blade',hex(w.blade),{e:w.glow})).rot(0,0,-1.75).sc(1.6,w.len*.9,1); // 낫날
+    hd.add(new N('sphere',hex(w.metal),M)).sc(.08,.08,.08);
+    const seg=4; let prev=hd;                                                                     // 휘어진 낫날 (마디 4개)
+    for(let i=0;i<seg;i++){ const n=prev.add(new N(null)).at(i?0:0,i?w.len*.26:0,0).rot(0,0,i?-.32:-1.6);
+      const b=n.add(new N('blade',hex(w.blade),{e:[w.glow[0]*.5,w.glow[1]*.5,w.glow[2]*.5],spec:.9})).sc(1.8-i*.3,w.len*.3,1);
+      if(i===seg-1) R.bladeN=b; prev=n; }
+    hd.add(new N('cone',hex(w.metal),M)).at(0,.08,0).sc(.05,.16,.05).d();                          // 뒤쪽 가시
   },
   orb(node,w,R){
-    R.bladeN=node.add(new N('sphere',hex(w.accent),{e:w.glow})).at(0,.12,0).sc(w.size,w.size,w.size);
+    R.bladeN=node.add(new N('sphere',hex(w.accent),{e:w.glow,spec:.6})).at(0,.12,0).sc(w.size,w.size,w.size);
+    node.add(new N('ringThin',hex(w.accent),{e:w.glow})).at(0,.12,0).rot(.6,0,.3).sc(w.size*1.5,1,w.size*1.5).d();
+    node.add(new N('ringThin',hex(w.accent),{e:w.glow})).at(0,.12,0).rot(-.5,0,-.6).sc(w.size*1.7,1,w.size*1.7).d();
   }
 };
 

@@ -5,67 +5,124 @@
 const XF = window.XF = window.XF || {};
 const N = XF.Node, hex = XF.hex;
 
-/* 스타일: 주인공·적 공통 인체 리그 */
+/* 스타일: 주인공·적 공통 인체 리그 (v0.6.0 디테일 모델)
+ * .d() 가 붙은 부품은 멀리 있을 때 생략되는 디테일 (LOD) */
+const SKIN={spec:.05}, CLOTH={spec:.06}, METAL={spec:.75}, GLOSS={spec:.4};
 function humanoid(st){
-  const R={};
+  const R={}; const w=st.w, L=st.limb, fem=st.female?1:0;
+  const glow=(o)=>Object.assign({e:st.glow,spec:.3},o||{});
+  const darkEye=[.08,.09,.11];
   const root=R.root=new N(null);
   const hips=R.hips=root.add(new N(null)).at(0,st.hip,0);
-  R.pelvis=hips.add(new N('box',st.cloth)).sc(st.w*.9,.22,st.w*.55);
-  const spine=R.spine=hips.add(new N(null)).at(0,.08,0);
-  R.torso=spine.add(new N('box',st.body)).at(0,.3,0).sc(st.w,.55,st.w*.55);
-  if(st.chestPlate) spine.add(new N('box',st.accent,{e:st.glow})).at(0,.38,st.w*.29).sc(st.w*.35,.12,.03);
+  // ── 골반 · 벨트
+  R.pelvis=hips.add(new N('taper',st.cloth,CLOTH)).at(0,-.02,0).sc(w*(.92+fem*.08),.24,w*.6).rot(Math.PI,0,0);
+  hips.add(new N('box',st.metal,METAL)).at(0,.09,0).sc(w*.98,.06,w*.64);
+  hips.add(new N('box',st.accent,glow())).at(0,.09,w*.33).sc(.07,.05,.02).d();             // 벨트 버클
+  // ── 척추 · 상체
+  const spine=R.spine=hips.add(new N(null)).at(0,.1,0);
+  spine.add(new N('taper',st.body,CLOTH)).at(0,.15,0).sc(w*(.78-fem*.06),.24,w*.5).rot(Math.PI,0,0);   // 허리
+  R.torso=spine.add(new N('taper',st.body,CLOTH)).at(0,.42,0).sc(w*(1.06-fem*.1),.34,w*.6);          // 가슴 (위가 넓음)
+  spine.add(new N('box',st.cloth,CLOTH)).at(0,.44,-w*.29).sc(w*.85,.3,.04).d();                     // 등판
+  // 가슴 장식: 에테르 코어 / 갑옷판
+  if(st.chestPlate){ spine.add(new N('box',st.metal,METAL)).at(0,.45,w*.3).sc(w*.5,.18,.04);
+    spine.add(new N('hex',st.accent,glow())).at(0,.46,w*.33).rot(Math.PI/2,0,0).sc(.07,.02,.07); }
+  // 칼라 · 목
+  spine.add(new N('cyl',st.cloth,CLOTH)).at(0,.6,0).sc(w*.5,.06,w*.42);
   const neck=R.neck=spine.add(new N(null)).at(0,.62,0);
-  R.head=neck.add(new N('sphere',st.skin)).at(0,.17,0).sc(.3,.34,.31);
-  // 머리카락
+  neck.add(new N('cyl',st.skin,SKIN)).at(0,.05,0).sc(.1,.12,.1);
+  // ── 머리 · 얼굴
+  const head=R.headN=neck.add(new N(null)).at(0,.19,0);
+  R.head=head.add(new N('sphere',st.skin,SKIN)).sc(.26,.31,.27);
+  if(st.hair!=='hood'){ for(const sx of [-1,1]){
+    head.add(new N('sphere',darkEye,GLOSS)).at(sx*.058,.025,.118).sc(.045,.035,.02).d();        // 눈
+    head.add(new N('sphere',st.accent,glow({spec:0}))).at(sx*.058,.025,.128).sc(.018,.02,.006).d(); // 눈동자 빛
+    head.add(new N('box',st.hairC||st.cloth,CLOTH)).at(sx*.06,.072,.122).sc(.055,.01,.008).rot(0,0,sx*-.1).d(); } } // 눈썹
+  // 머리카락 스타일
+  const hc=st.hairC||st.cloth;
   if(st.hair==='long'){
-    neck.add(new N('sphere',st.hairC)).at(0,.22,-.02).sc(.34,.33,.34);
-    R.tail=neck.add(new N('boxT',st.hairC)).at(0,.26,-.14).sc(.2,.68,.07).rot(.12,0,0);
-    neck.add(new N('cone',st.skin)).at(-.17,.2,0).sc(.05,.16,.05).rot(0,0,1.2);   // 엘프 귀
-    neck.add(new N('cone',st.skin)).at(.17,.2,0).sc(.05,.16,.05).rot(0,0,-1.2);
+    head.add(new N('sphere',hc,GLOSS)).at(0,.05,-.02).sc(.3,.3,.31);
+    for(let i=0;i<5;i++){ const x=-.1+i*.05; head.add(new N('strand',hc,GLOSS)).at(x,.15,.12).sc(.07,.13,.04).rot(-.35,0,(i-2)*.08).d(); }  // 앞머리
+    for(const sx of [-1,1]) head.add(new N('strand',hc,GLOSS)).at(sx*.14,.06,.06).sc(.08,.36,.04).rot(.05,0,sx*.08);                    // 옆머리
+    R.tail=head.add(new N(null)).at(0,.08,-.12);
+    for(let i=0;i<5;i++) R.tail.add(new N('strand',hc,GLOSS)).at((i-2)*.055,0,-.01*Math.abs(i-2)).sc(.1,.62+(2-Math.abs(i-2))*.06,.04).rot(.1,0,(i-2)*.07);
+    for(const sx of [-1,1]) head.add(new N('cone',st.skin,SKIN)).at(sx*.15,.02,-.01).sc(.04,.16,.06).rot(-.15,0,sx*-1.25); // 엘프 귀
+    head.add(new N('box',st.accent,glow())).at(.12,.14,.05).sc(.02,.06,.02).rot(0,0,-.3).d();                          // 머리 장식
   } else if(st.hair==='short'){
-    neck.add(new N('sphere',st.hairC)).at(0,.24,-.03).sc(.34,.28,.35);
-    for(let i=0;i<4;i++) neck.add(new N('cone',st.hairC)).at(-.12+i*.08,.36,-.05).sc(.08,.16,.08).rot(-.5,0,(i-1.5)*.3);
-    neck.add(new N('box',st.accent,{e:st.glow})).at(0,.2,.15).sc(.26,.05,.02); // 바이저
+    head.add(new N('sphere',hc,GLOSS)).at(0,.07,-.03).sc(.3,.25,.31);
+    for(let i=0;i<7;i++){ const a=(i-3)*.32; head.add(new N('cone',hc,GLOSS)).at(Math.sin(a)*.12,.17,-.02+Math.cos(a)*.05).sc(.09,.17,.07).rot(-.6+Math.abs(i-3)*.08,0,(i-3)*.28).d(); }
+    for(let i=0;i<3;i++) head.add(new N('strand',hc,GLOSS)).at(-.06+i*.06,.13,.12).sc(.08,.1,.03).rot(-.5,0,(i-1)*.2).d();   // 앞머리
+    head.add(new N('box',st.metal,METAL)).at(0,.04,.14).sc(.27,.06,.03);                                              // 바이저 프레임
+    head.add(new N('box',st.accent,glow())).at(0,.04,.157).sc(.22,.025,.01);                                          // 바이저 빛
+    head.add(new N('box',st.metal,METAL)).at(.15,0,0).sc(.03,.08,.1).d();                                             // 귀 장치
   } else if(st.hair==='hood'){
-    neck.add(new N('cone',st.cloth)).at(0,.24,-.04).sc(.42,.5,.42);
-    R.eyes=neck.add(new N('box',st.accent,{e:st.glow})).at(0,.17,.15).sc(.16,.03,.02);
+    head.add(new N('sphere',[.03,.03,.04],CLOTH)).at(0,-.01,.05).sc(.22,.24,.2);                                       // 그림자 진 얼굴
+    head.add(new N('cone',st.cloth,CLOTH)).at(0,.1,-.05).sc(.4,.5,.42);
+    head.add(new N('taperW',st.cloth,CLOTH)).at(0,-.12,-.06).sc(.42,.24,.38).d();                                      // 후드 목 부분
+    R.eyes=head.add(new N(null));
+    for(const sx of [-1,1]) R.eyes.add(new N('box',st.accent,glow({spec:0}))).at(sx*.055,.01,.15).sc(.05,.018,.01).rot(0,0,sx*.2);
   } else if(st.hair==='crown'){
-    neck.add(new N('sphere',st.hairC)).at(0,.22,-.03).sc(.36,.34,.36);
-    R.tail=neck.add(new N('boxT',st.hairC)).at(0,.26,-.14).sc(.38,.95,.08).rot(.15,0,0);
-    for(let i=0;i<5;i++) neck.add(new N('cone',st.accent,{e:st.glow})).at(-.16+i*.08,.42+(i===2?.06:0),0).sc(.04,i===2?.24:.16,.04);
-    R.eyes=neck.add(new N('box',st.accent,{e:st.glow})).at(0,.17,.155).sc(.15,.025,.02);
+    head.add(new N('sphere',hc,GLOSS)).at(0,.05,-.03).sc(.31,.31,.32);
+    for(let i=0;i<4;i++) head.add(new N('strand',hc,GLOSS)).at(-.08+i*.055,.14,.12).sc(.07,.15,.04).rot(-.3,0,(i-1.5)*.1).d();
+    R.tail=head.add(new N(null)).at(0,.08,-.13);
+    for(let i=0;i<7;i++) R.tail.add(new N('strand',hc,GLOSS)).at((i-3)*.05,0,-.01*Math.abs(i-3)).sc(.1,.9+(3-Math.abs(i-3))*.05,.04).rot(.12,0,(i-3)*.06);
+    const crown=head.add(new N(null)).at(0,.19,0);
+    crown.add(new N('ringThin',st.metal,METAL)).sc(.18,1,.18).d();
+    for(let i=0;i<7;i++){ const a=(i-3)*.42, tall=i===3?.26:i%2?.12:.18;
+      crown.add(new N('cone',st.accent,glow())).at(Math.sin(a)*.16,tall/2,Math.cos(a)*.16-.02).sc(.035,tall,.035).rot(Math.cos(a)*-.2,0,Math.sin(a)*.25); }
+    R.eyes=head.add(new N(null));
+    for(const sx of [-1,1]) R.eyes.add(new N('box',st.accent,glow({spec:0}))).at(sx*.06,.02,.14).sc(.05,.016,.01).rot(0,0,sx*.15);
   }
-  // 팔
+  // ── 팔
   const arm=(s)=>{
-    const sh=spine.add(new N(null)).at(s*(st.w*.5+.07),.52,0);
-    const up=sh.add(new N('limb',s>0&&st.mechR?st.metal:st.body,s>0&&st.mechR?{}:undefined)).sc(.13*st.limb,.32,.13*st.limb);
-    if(s>0&&st.mechR) sh.add(new N('box',st.accent,{e:st.glow})).at(0,-.16,.07).sc(.03,.2,.02);
+    const mech=s>0&&st.mechR;
+    const sh=spine.add(new N(null)).at(s*(w*.5+.06),.54,0);
+    sh.add(new N('sphere',mech?st.metal:st.cloth,mech?METAL:CLOTH)).at(s*.015,.01,0).sc(.14*L,.12,.14*L);        // 어깨
+    if(st.pauldron||mech) sh.add(new N('taper',st.metal,METAL)).at(s*.04,.06,0).sc(.2*L,.08,.2*L).rot(0,0,s*-.35).d(); // 견갑
+    sh.add(new N('capsT',mech?st.metal:st.body,mech?METAL:CLOTH)).sc(.12*L,.34,.12*L);                          // 위팔
+    if(mech){ sh.add(new N('box',st.accent,glow())).at(0,-.17,.065*L).sc(.025,.22,.01);
+      sh.add(new N('box',st.metal,METAL)).at(s*.06*L,-.18,0).sc(.02,.2,.09*L).d(); }
     const el=sh.add(new N(null)).at(0,-.32,0);
-    el.add(new N('limb',s>0&&st.mechR?st.metal:st.skinArm)).sc(.11*st.limb,.3,.11*st.limb);
-    const hand=el.add(new N(null)).at(0,-.32,0);
-    hand.add(new N('sphere',s>0&&st.mechR?st.metal:st.skinArm)).sc(.12,.12,.12);
+    el.add(new N('sphere',mech?st.metal:st.body,mech?METAL:CLOTH)).sc(.11*L,.11*L,.11*L).d();                    // 팔꿈치
+    el.add(new N('capsT',mech?st.metal:st.skinArm,mech?METAL:SKIN)).sc(.1*L,.32,.1*L);                          // 아래팔
+    el.add(new N('limbS',mech?st.accent:st.metal,mech?glow():METAL)).at(0,-.2,0).sc(.115*L,.12,.115*L);          // 손목 보호대
+    const hand=el.add(new N(null)).at(0,-.33,0);
+    hand.add(new N('box',mech?st.metal:st.skinArm,mech?METAL:SKIN)).at(0,-.03,0).sc(.08,.1,.05);                 // 손
+    hand.add(new N('box',mech?st.metal:st.skinArm,mech?METAL:SKIN)).at(-s*.045,-.02,.02).sc(.025,.06,.025).rot(0,0,s*.4).d(); // 엄지
     return {sh,el,hand};
   };
   R.armL=arm(-1); R.armR=arm(1);
-  // 다리
+  // ── 다리
   const leg=(s)=>{
-    const hp=hips.add(new N(null)).at(s*st.w*.24,-.05,0);
-    hp.add(new N('limb',st.legC)).sc(.17*st.limb,.46,.17*st.limb);
+    const hp=hips.add(new N(null)).at(s*w*(.24+fem*.02),-.06,0);
+    hp.add(new N('capsT',st.legC,CLOTH)).sc(.16*L,.48,.16*L);                                                    // 허벅지
     const kn=hp.add(new N(null)).at(0,-.46,0);
-    kn.add(new N('limb',st.legC)).sc(.14*st.limb,.44,.14*st.limb);
-    kn.add(new N('box',st.boot)).at(0,-.44,.05).sc(.16,.1,.28);
+    kn.add(new N('sphere',st.metal,METAL)).at(0,0,.06).sc(.1*L,.1,.07).d();                                      // 무릎 보호대
+    kn.add(new N('capsT',st.legC,CLOTH)).sc(.13*L,.44,.13*L);                                                    // 정강이
+    kn.add(new N('taper',st.boot,GLOSS)).at(0,-.3,0).sc(.15*L,.22,.15*L).rot(Math.PI,0,0);                         // 부츠 목
+    kn.add(new N('boot',st.boot,GLOSS)).at(0,-.43,.05).sc(.15,.09,.27);                                          // 발
+    kn.add(new N('box',st.accent,glow())).at(s*.07,-.3,0).sc(.01,.12,.04).d();                                   // 부츠 발광선
     return {hp,kn};
   };
   R.legL=leg(-1); R.legR=leg(1);
-  // 옷자락
-  if(st.coat){ R.coat=hips.add(new N('boxT',st.cloth)).at(0,0,-.12).sc(st.w*.85,.62,.05).rot(.15,0,0);
-    R.coat2=hips.add(new N('boxT',st.accent,{e:st.glow})).at(0,-.6,-.21).sc(st.w*.8,.02,.02).rot(.15,0,0); }
-  if(st.robe){ R.robe=hips.add(new N('cone',st.cloth)).at(0,-.45,0).sc(st.w*1.6,1.0,st.w*1.4); }
-  // 무기 (assets/weapons.js)
+  // ── 옷자락 (갈라진 코트 꼬리)
+  if(st.coat){ R.coat=hips.add(new N(null)).at(0,.04,-w*.3);
+    for(const sx of [-1,1]){ const tail=R.coat.add(new N(null)).at(sx*w*.22,0,0).rot(0,0,sx*.06);
+      tail.add(new N('boxT',st.cloth,CLOTH)).sc(w*.42,.66+fem*.06,.035);
+      tail.add(new N('box',st.accent,glow())).at(0,-.64-fem*.06,-.01).sc(w*.4,.025,.02).d(); }
+    for(const sx of [-1,1]) hips.add(new N('boxT',st.cloth,CLOTH)).at(sx*w*.44,.04,0).sc(.03,.42,w*.45).rot(0,0,sx*-.08).d(); } // 옆자락
+  // ── 로브
+  if(st.robe){ R.robe=hips.add(new N('cone',st.cloth,CLOTH)).at(0,-.45,0).sc(w*1.6,1.0,w*1.4);
+    hips.add(new N('taperW',st.cloth,CLOTH)).at(0,-.2,0).sc(w*1.1,.4,w*.9).d();
+    hips.add(new N('ringThin',st.accent,glow())).at(0,-.93,0).sc(w*.8,1,w*.7).d(); }
+  // ── 망토 (적 · 넝마)
+  if(st.cape){ R.cape=spine.add(new N(null)).at(0,.58,-w*.32);
+    for(let i=0;i<4;i++) R.cape.add(new N('strand',st.cloth,CLOTH)).at((i-1.5)*w*.24,0,0).sc(w*.34,1.0+(i%2)*.18,.04).rot(.12,0,(i-1.5)*.05); }
+  // ── 어깨 가시 (처형자)
+  if(st.spikes) for(const sx of [-1,1]) for(let i=0;i<3;i++) spine.add(new N('cone',st.metal,METAL)).at(sx*(w*.55+.05),.68,-.05+i*.08).sc(.05,.2-i*.03,.05).rot(-.2,0,sx*-.5).d();
+  // ── 무기 (assets/weapons.js)
   XF.buildWeapon(R,st.weapon);
   R.st=st; R.cur={}; return R;
 }
-
 XF.buildHumanoid=humanoid;
 const P = XF.Models = XF.Models || {};
 
@@ -111,8 +168,9 @@ P.apply=function(R,pose,run,phase,dt,k){
   R.legL.hp.r=[c.lLx-sw*1.0,0,0]; R.legL.kn.r=[c.kLx+Math.max(0,sw2)*1.1*run,0,0];
   R.legR.hp.r=[c.lRx+sw*1.0,0,0]; R.legR.kn.r=[c.kRx+Math.max(0,-sw2)*1.1*run,0,0];
   R.weapon.r=[c.wX,c.wR,0];
-  if(R.tail) R.tail.r[0]=.15+run*.5+Math.sin(phase*2)*.05*run;
-  if(R.coat){ R.coat.r[0]=.15+run*.5; R.coat2.r[0]=R.coat.r[0]; R.coat2.p[2]=-.12-Math.sin(R.coat.r[0])*.62; R.coat2.p[1]=-Math.cos(R.coat.r[0])*.62; }
+  if(R.tail) R.tail.r[0]=.12+run*.45+Math.sin(phase*2)*.05*run-Math.min(0,c.lean)*.2;
+  if(R.coat) R.coat.r[0]=.12+run*.55+Math.max(0,-c.lean)*.3+Math.sin(phase*2)*.04*run;
+  if(R.cape) R.cape.r[0]=.08+run*.4+Math.sin(phase*2+1)*.05*run;
 };
 /* 무기 끝 월드 좌표 */
 P.tip=function(R){ const n=R.bladeN||R.weapon; const m=n.M; return [m[12]+m[4],m[13]+m[5],m[14]+m[6]]; };
